@@ -1,0 +1,270 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/AuthContext'
+import ReadingList from '@/components/ReadingList'
+import ReadingForm from '@/components/ReadingForm'
+import ConfirmModal from '@/components/ConfirmModal'
+import Toast from '@/components/Toast'
+import { PlusIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@/components/Icons'
+
+const todayStr = () => new Date().toISOString().split('T')[0]
+
+const yesterdayStr = () => {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
+}
+
+export default function ReadingsPage() {
+  const { user, token, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [readings, setReadings] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [date, setDate] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [showForm, setShowForm] = useState(false)
+  const [editReading, setEditReading] = useState(null)
+  const [deletingReading, setDeletingReading] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [toast, setToast] = useState(null)
+  const LIMIT = 10
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, authLoading, router])
+
+  const fetchReadings = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      let url = `/api/readings?page=${page}&limit=${LIMIT}`
+      if (date) url += `&date=${date}`
+
+      const res = await fetch(url, { headers })
+      if (res.ok) {
+        const data = await res.json()
+        const rows = data.data || data.readings || []
+        const totalCount = data.pagination?.total ?? data.total ?? rows.length
+        setReadings(rows)
+        setTotal(totalCount)
+      }
+    } catch {
+      setReadings([])
+      setTotal(0)
+    } finally {
+      setLoading(false)
+    }
+  }, [date, page, user, token])
+
+  useEffect(() => {
+    if (user) {
+      fetchReadings()
+    }
+  }, [user, fetchReadings])
+
+  const handleDateChange = (e) => {
+    setDate(e.target.value)
+    setPage(1)
+  }
+
+  const handleEdit = (reading) => {
+    setEditReading(reading)
+    setShowForm(true)
+  }
+
+  const handleDeleteRequest = (reading) => {
+    setDeletingReading(reading)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingReading) return
+    setDeleteLoading(true)
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await fetch(`/api/readings/${deletingReading.id}`, {
+        method: 'DELETE',
+        headers,
+      })
+      if (res.ok) {
+        setToast({ type: 'success', message: 'Reading successfully deleted.' })
+        setDeletingReading(null)
+        fetchReadings()
+      } else {
+        const data = await res.json()
+        setToast({ type: 'error', message: data.error || 'Failed to delete reading.' })
+      }
+    } catch {
+      setToast({ type: 'error', message: 'Failed to delete reading.' })
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  if (authLoading || (!user && typeof window !== 'undefined')) {
+    return (
+      <div className="page-loading">
+        <div className="spinner" />
+        <p>Loading readings…</p>
+      </div>
+    )
+  }
+
+  const totalPages = Math.ceil(total / LIMIT) || 1
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Readings History</h1>
+          <p className="page-subtitle">Complete chronological log of blood glucose records</p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => {
+            setEditReading(null)
+            setShowForm(true)
+          }}
+        >
+          <PlusIcon size={16} />
+          <span>Add Reading</span>
+        </button>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="filter-bar">
+        <div className="filter-left">
+          <div className="filter-input-group">
+            <CalendarIcon size={16} style={{ color: 'var(--slate-500)' }} />
+            <label htmlFor="filter-date">Date filter:</label>
+            <input
+              id="filter-date"
+              type="date"
+              value={date}
+              max={todayStr()}
+              onChange={handleDateChange}
+              style={{ width: 'auto', padding: '6px 10px', fontSize: '0.8125rem' }}
+            />
+          </div>
+
+          <div className="filter-presets">
+            <button
+              type="button"
+              className={`filter-preset-btn ${date === todayStr() ? 'active' : ''}`}
+              onClick={() => {
+                setDate(todayStr())
+                setPage(1)
+              }}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              className={`filter-preset-btn ${date === yesterdayStr() ? 'active' : ''}`}
+              onClick={() => {
+                setDate(yesterdayStr())
+                setPage(1)
+              }}
+            >
+              Yesterday
+            </button>
+            <button
+              type="button"
+              className={`filter-preset-btn ${date === '' ? 'active' : ''}`}
+              onClick={() => {
+                setDate('')
+                setPage(1)
+              }}
+            >
+              All Records
+            </button>
+          </div>
+        </div>
+
+        <div className="result-count-badge">
+          {total} record{total !== 1 ? 's' : ''} found
+        </div>
+      </div>
+
+      {/* Reading Table */}
+      <ReadingList
+        readings={readings}
+        loading={loading}
+        onEdit={handleEdit}
+        onDelete={handleDeleteRequest}
+      />
+
+      {/* Pagination Bar */}
+      {totalPages > 1 && (
+        <div className="pagination-bar">
+          <div className="pagination-info">
+            Showing Page <strong>{page}</strong> of <strong>{totalPages}</strong> ({total} total readings)
+          </div>
+          <div className="pagination-controls">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeftIcon size={14} />
+              <span>Previous</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              <span>Next</span>
+              <ChevronRightIcon size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Form Modal */}
+      {showForm && (
+        <ReadingForm
+          reading={editReading}
+          defaultDate={date || todayStr()}
+          token={token}
+          onSuccess={() => {
+            setShowForm(false)
+            setEditReading(null)
+            setToast({
+              type: 'success',
+              message: editReading ? 'Reading updated.' : 'Reading created.',
+            })
+            fetchReadings()
+          }}
+          onCancel={() => {
+            setShowForm(false)
+            setEditReading(null)
+          }}
+        />
+      )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deletingReading)}
+        title="Delete Reading Record"
+        message={`Delete the reading from ${deletingReading?.reading_date} (${deletingReading?.value_mgdl} mg/dL)? This action is permanent.`}
+        confirmLabel="Delete"
+        isDestructive={true}
+        isLoading={deleteLoading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingReading(null)}
+      />
+
+      {/* Toast */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+    </div>
+  )
+}

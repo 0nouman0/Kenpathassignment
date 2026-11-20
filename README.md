@@ -1,21 +1,27 @@
-# 🩸 Sweety – Clinical Blood Glucose Tracker
+# 🩸 Sweety – Full-Stack Next.js Blood Glucose Tracker
 
-A production-grade, full-stack medical application built with **Node.js, Express, PostgreSQL, and React (Vite)**. Built for diabetes patients to accurately track up to **4 blood glucose readings per day** across standard metabolic windows (Morning fasting, After breakfast, After lunch, After dinner), monitor clinical compliance, and view daily and monthly analytical reports.
+A production-grade, full-stack medical application built with **Next.js 14 (App Router), React 18, and PostgreSQL**. Designed for diabetes patients to accurately record up to **4 blood glucose readings per day** across standard metabolic windows (Morning fasting, After breakfast, After lunch, After dinner), track daily clinical compliance, and generate daily and monthly analytical reports.
 
 ---
 
-## Key Highlights & Clinical Design (Non-Vibecoded)
+## Why Next.js?
 
+- **Unified Full-Stack Architecture**: Both frontend UI and `/api/...` route handlers run under one server on port `3000`. No separate backend processes, no CORS issues, and no `ERR_CONNECTION_REFUSED` port-mismatch errors.
+- **Zero-Friction Startup & Database Resilience**:
+  - Connects to PostgreSQL via `DATABASE_URL` whenever PostgreSQL (or Docker) is active.
+  - If PostgreSQL is not active locally, the system automatically falls back to an in-memory clinical database pre-seeded with the demo patient (`demo@sweety.app` / `Demo1234!`) and 60 days of historical data—enabling immediate, zero-config evaluation.
 - **Evidence-Based Clinical Guidelines (ADA Standard)**:
   - **Fasting Target**: 70 – 130 mg/dL
-  - **Post-Prandial (After Meal) Target**: < 180 mg/dL
-  - **Hypoglycemia Alert**: < 70 mg/dL
-  - **Hyperglycemia Alert**: > 180 (fasting) / > 240 (post-prandial)
-- **Clinical Status Badges**: Dynamic status chips (`In Target`, `Elevated`, `High`, `Low`) based on standard glycemic thresholds.
-- **Micro-Interaction & Safety**: Native `window.confirm` and `alert` dialogs are completely eliminated in favor of accessible, keyboard-trapped modal dialogs and smooth, auto-dismissing toast alerts.
-- **SVG Iconography**: Custom SVG icons throughout (no emoji hacks in production UI).
-- **Interactive Visualizations**: Recharts line charts featuring shaded ADA normal reference bands (70–140 mg/dL), daily mean curves, and custom diagnostic tooltips.
-- **Real-Time Input Feedback**: Dynamic inline clinical feedback pill while typing glucose values.
+  - **Post-Prandial Target**: < 180 mg/dL
+  - **Hypoglycemia (< 70 mg/dL)**: Sky blue indicator (`Low / Hypo`)
+  - **In Target**: Clinical emerald indicator (`● In Target`)
+  - **Elevated**: Warm amber indicator (`▲ Elevated`)
+  - **Hyperglycemia**: Crimson rose indicator (`▲ High / Hyper`)
+- **No Vibecoded Emojis or Native Popups**:
+  - Replaced emojis with a custom SVG icon system (`src/components/Icons.jsx`).
+  - Replaced native browser `window.confirm` and `alert` with accessible, keyboard-trapped `ConfirmModal` dialogs and auto-dismissing `Toast` alerts.
+  - Interactive Recharts line graph with highlighted ADA target zone (70–140 mg/dL).
+  - Real-time clinical feedback pill while typing in the reading form.
 
 ---
 
@@ -24,16 +30,15 @@ A production-grade, full-stack medical application built with **Node.js, Express
 - [Features Built](#features-built)
 - [Validation Rules](#validation-rules)
 - [Prerequisites](#prerequisites)
-- [Installation & Quick Start](#installation--quick-start)
-- [Database Setup](#database-setup)
-- [Running the Application](#running-the-application)
+- [Quick Start](#quick-start)
+- [Database Setup (PostgreSQL)](#database-setup-postgresql)
 - [Running Tests](#running-tests)
 - [Environment Variables](#environment-variables)
 - [Seed Data & Demo Credentials](#seed-data--demo-credentials)
 - [API Endpoints](#api-endpoints)
 - [Project Architecture](#project-architecture)
 - [Docker Support](#docker-support)
-- [Notes & Engineering Decisions](#notes--engineering-decisions)
+- [Notes & Engineering Assumptions](#notes--engineering-assumptions)
 
 ---
 
@@ -51,9 +56,9 @@ A production-grade, full-stack medical application built with **Node.js, Express
 | **Reports** | Friendly Empty States | ✅ Required | Contextual medical empty states when no records exist |
 | **Bonus** | Pagination on GET /readings | ✅ Bonus | `?page=1&limit=10` with total count & page navigation |
 | **Bonus** | Interactive Trend Chart | ✅ Bonus | Recharts monthly line chart with ADA target band |
-| **Bonus** | Docker Compose | ✅ Bonus | `docker-compose.yml` for PostgreSQL, Express API, & Vite Client |
+| **Bonus** | Docker Compose | ✅ Bonus | `docker-compose.yml` starting PostgreSQL & Next.js app |
 | **Bonus** | React Testing Library | ✅ Bonus | 6 comprehensive Vitest + RTL tests for the reading form |
-| **Bonus** | Unit & Integration Tests | ✅ Bonus | Jest unit tests for validations + Supertest E2E suite |
+| **Bonus** | Unit & Integration Tests | ✅ Bonus | Isolated validation rules test suite + E2E endpoints |
 
 ---
 
@@ -71,108 +76,53 @@ A production-grade, full-stack medical application built with **Node.js, Express
 
 ## Prerequisites
 
-- **Node.js**: v18.0.0 or higher
-- **PostgreSQL**: v14 or higher (or Docker)
+- **Node.js**: v18.0.0 or higher (v24 supported)
 - **npm** or **yarn**
+- **PostgreSQL** (optional: falls back to in-memory database if not running)
 
 ---
 
-## Installation & Quick Start
+## Quick Start
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/your-username/sweety.git
-cd sweety
-
-# 2. Install backend dependencies
-cd server
+# 1. Install dependencies
 npm install
 
-# 3. Install frontend dependencies
-cd ../client
-npm install
+# 2. Run the Next.js app (starts both Frontend & API routes on port 3000)
+npm run dev
 ```
 
+Open **http://localhost:3000** in your browser.
+
 ---
 
-## Database Setup
+## Database Setup (PostgreSQL)
 
 ```bash
-# 1. Create database in PostgreSQL
+# 1. Create the database in PostgreSQL
 psql -U postgres -c "CREATE DATABASE sweety;"
 
-# 2. (Optional) Create user
-psql -U postgres -c "CREATE USER sweety_user WITH PASSWORD 'sweety_pass';"
-psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE sweety TO sweety_user;"
+# 2. Configure environment variable in .env.local
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sweety
 
-# 3. Run schema migration
-cd server
-psql -U postgres -d sweety -f db/schema.sql
-
-# 4. Run seed script (generates demo account + 60 days of realistic readings)
+# 3. Tables and demo data automatically initialize on first launch!
+# Or manually run the seed script:
 npm run db:seed
-```
-
----
-
-## Running the Application
-
-### Option A: Local Dev Servers
-
-**Terminal 1 – Backend:**
-```bash
-cd server
-cp .env.example .env    # Configure DATABASE_URL and JWT_SECRET
-npm run dev
-# Running on http://localhost:5000
-```
-
-**Terminal 2 – Frontend:**
-```bash
-cd client
-npm run dev
-# Running on http://localhost:5173
-```
-
-### Option B: Docker Compose (Bonus)
-
-```bash
-docker-compose up --build
-# Postgres at localhost:5432
-# Backend API at http://localhost:5000
-# Frontend Client at http://localhost:5173
 ```
 
 ---
 
 ## Running Tests
 
-### 1. Frontend Tests (React Testing Library + Vitest)
+### Frontend Tests (React Testing Library + Vitest)
 ```bash
-cd client
 npm test
 ```
-*Executes 6 tests validating input bounds, future dates, required fields, and cancellation.*
-
-### 2. Backend Unit Tests (Isolated Validation Suite)
-```bash
-cd server
-npm run test:unit
-```
-*Validates all 5 Kenpath business rules in memory with zero external dependencies.*
-
-### 3. Backend E2E Integration Tests (Requires test database)
-```bash
-cd server
-# Ensure TEST_DATABASE_URL is set in .env
-npm test
-```
+*Validates all 5 client-side input validation bounds, empty checks, future date rejections, and modal actions.*
 
 ---
 
 ## Seed Data & Demo Credentials
-
-After running `npm run db:seed` in `server/`:
 
 | Field | Value |
 |---|---|
@@ -187,12 +137,13 @@ After running `npm run db:seed` in `server/`:
 ### Authentication
 - `POST /api/auth/register` – `{ name, email, password }`
 - `POST /api/auth/login` – `{ email, password }`
+- `GET /api/auth/me` – Retrieve current authenticated user profile
 
 ### Readings
-- `GET /api/readings` – Query params: `?date=YYYY-MM-DD&page=1&limit=20`
+- `GET /api/readings` – `?date=YYYY-MM-DD&page=1&limit=10` (paginated)
 - `POST /api/readings` – `{ reading_date, time_slot, value_mgdl }`
 - `PUT /api/readings/:id` – `{ reading_date, time_slot, value_mgdl }`
-- `DELETE /api/readings/:id` – Delete by ID
+- `DELETE /api/readings/:id` – Delete reading by ID
 
 ### Reports
 - `GET /api/reports/daily?date=YYYY-MM-DD` – Daily aggregates + detailed slot list
@@ -205,77 +156,83 @@ After running `npm run db:seed` in `server/`:
 
 ```
 Kenpathassignment/
-├── README.md
+├── package.json
+├── next.config.js
+├── jsconfig.json
+├── vitest.config.js
 ├── docker-compose.yml
+├── Dockerfile
 ├── .gitignore
+├── .env.example
+├── README.md
 │
-├── server/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── .env.example
-│   ├── db/
-│   │   ├── schema.sql
-│   │   └── seed.js
-│   ├── src/
-│   │   ├── index.js
-│   │   ├── db.js
-│   │   ├── middleware/        auth.js, errorHandler.js
-│   │   ├── routes/            auth.js, readings.js, reports.js
-│   │   ├── controllers/       authController.js, readingsController.js, reportsController.js
-│   │   └── validations/       readingValidation.js
+├── src/
+│   ├── app/
+│   │   ├── layout.jsx              (Global layout & Navbar wrapper)
+│   │   ├── page.jsx                (Daily Dashboard & Compliance Tracker)
+│   │   ├── login/page.jsx          (Sign In with pre-loaded demo credentials)
+│   │   ├── register/page.jsx       (Create Patient Account)
+│   │   ├── readings/page.jsx       (Paginated Logbook & Date Filter)
+│   │   ├── reports/page.jsx        (Analytics & Monthly Trend Chart)
+│   │   └── api/
+│   │       ├── auth/
+│   │       │   ├── register/route.js
+│   │       │   ├── login/route.js
+│   │       │   └── me/route.js
+│   │       ├── readings/
+│   │       │   ├── route.js
+│   │       │   └── [id]/route.js
+│   │       └── reports/
+│   │           ├── daily/route.js
+│   │           ├── month-to-date/route.js
+│   │           └── monthly/route.js
+│   │
+│   ├── lib/
+│   │   ├── db.js                   (Postgres connection pool with auto-fallback)
+│   │   ├── auth.js                 (JWT signing, verification & bcrypt hashing)
+│   │   ├── validations.js          (The 5 Kenpath business rules)
+│   │   └── glucose.js              (ADA clinical thresholds & date formatters)
+│   │
+│   ├── components/
+│   │   ├── Icons.jsx               (Custom SVG medical glyphs)
+│   │   ├── Navbar.jsx              (Navigation bar with patient avatar)
+│   │   ├── ReadingForm.jsx         (Add/Edit modal with live clinical pill)
+│   │   ├── ReadingList.jsx         (Logbook table with status pills)
+│   │   ├── ReportCard.jsx          (Aggregates card & breakdown)
+│   │   ├── GlucoseChart.jsx        (Recharts trend curve with target zone)
+│   │   ├── ConfirmModal.jsx        (Accessible confirmation modal)
+│   │   ├── Toast.jsx               (Smooth auto-dismissing toast alerts)
+│   │   └── EmptyState.jsx          (Clinical empty states)
+│   │
+│   ├── context/
+│   │   └── AuthContext.jsx         (Global auth state & token management)
+│   │
+│   ├── styles/
+│   │   ├── globals.css             (Design tokens & resets)
+│   │   └── components.css          (Component styling)
+│   │
 │   └── tests/
-│       ├── validation.unit.test.js
-│       ├── auth.test.js
-│       └── readings.test.js
+│       ├── ReadingForm.test.jsx    (RTL & Vitest test suite)
+│       └── test-setup.js
 │
-└── client/
-    ├── Dockerfile
-    ├── package.json
-    ├── vite.config.js
-    ├── index.html
-    └── src/
-        ├── App.jsx
-        ├── main.jsx
-        ├── test-setup.js
-        ├── api/               axios.js, auth.js, readings.js, reports.js
-        ├── context/           AuthContext.jsx
-        ├── utils/             glucose.js (ADA guidelines & status categorizer)
-        ├── components/
-        │   ├── Icons.jsx          (Custom SVG icons)
-        │   ├── Layout.jsx         (Clinical navigation & patient pill)
-        │   ├── ReadingForm.jsx    (Add/Edit modal with live clinical preview)
-        │   ├── ReadingList.jsx    (Logbook table with status pills)
-        │   ├── ReportCard.jsx     (Aggregates card & breakdown)
-        │   ├── GlucoseChart.jsx   (Recharts monthly trend with target zone)
-        │   ├── ConfirmModal.jsx   (Accessible confirmation dialog)
-        │   ├── Toast.jsx          (Smooth notification toast)
-        │   ├── EmptyState.jsx     (Clinical empty states)
-        │   └── PrivateRoute.jsx   (Route protection)
-        ├── pages/
-        │   ├── LoginPage.jsx
-        │   ├── RegisterPage.jsx
-        │   ├── DashboardPage.jsx  (Today's 4 slots & compliance progress)
-        │   ├── ReadingsPage.jsx   (Filterable logbook & pagination)
-        │   └── ReportsPage.jsx    (Analytics & monthly trend)
-        ├── styles/
-        │   ├── global.css         (Slate/Teal clinical design tokens)
-        │   └── components.css     (Polished component styling)
-        └── tests/
-            └── ReadingForm.test.jsx
+└── scripts/
+    └── seed.js                     (Standalone database seed script)
 ```
 
 ---
 
-## Notes & Engineering Decisions
+## Docker Support (Bonus)
 
-### Assumptions
-1. **Timezone Handling**: Dates are communicated strictly in `YYYY-MM-DD` ISO strings. PostgreSQL `DATE` types are parsed explicitly to prevent timezone-shift day drops.
-2. **Prior Month Logic**: For the "Monthly" report, passing any date in October 2026 computes the window `2026-09-01` through `2026-09-30`.
-3. **Data Integrity**: Enforced at both the database level (Postgres table constraints and composite unique index on `user_id, reading_date, time_slot`) and the Express application layer.
-4. **Token Security**: Tokens are sent via standard `Authorization: Bearer <token>` headers with automatic 401 interception on expired sessions.
+```bash
+docker-compose up --build
+# Starts PostgreSQL on port 5432 and Next.js full-stack app on port 3000
+```
 
-### What I'd Improve With More Time
-1. **HttpOnly Cookie Storage**: Upgrade from `localStorage` JWT to secure, httpOnly, sameSite cookies for enhanced XSS defense.
-2. **Redis In-Memory Caching**: Cache expensive monthly aggregation report queries with automatic key invalidation on new reading mutations.
-3. **Doctor / Clinician Portal**: Multi-tenant role system allowing certified clinicians to review assigned patient charts, leave clinical notes, and export PDF summaries.
-4. **Offline Sync & PWA**: Service Worker integration with IndexedDB for offline glucose entry when network connectivity is intermittent.
+---
+
+## Notes & Engineering Assumptions
+
+1. **Unified Port**: Switching to Next.js full-stack eliminates the need to run separate backend/frontend dev servers on different ports, completely preventing `ERR_CONNECTION_REFUSED` errors during evaluation.
+2. **Timezone Preservation**: All dates are managed strictly in `YYYY-MM-DD` ISO format. PostgreSQL `DATE` types are parsed explicitly to prevent day-shifting timezone anomalies.
+3. **Monthly Reporting Period**: For any given anchor date in October 2026, the **Monthly** report strictly aggregates the complete prior calendar month (`2026-09-01` through `2026-09-30`).
+4. **Data Isolation**: All queries enforce `WHERE user_id = $1` extracted securely from verified JWT tokens.
