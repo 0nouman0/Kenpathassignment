@@ -9,6 +9,21 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:post
 let pool = null
 let useMemoryFallback = false
 let memStore = null
+let warnedFallback = false
+
+function logMemoryWarning(reason) {
+  if (warnedFallback) return
+  warnedFallback = true
+  console.warn(`
+======================================================================
+[SWEETY DATA PERSISTENCE WARNING]
+PostgreSQL database is currently unreachable (${reason || 'Connection refused'}).
+Operating in IN-MEMORY MODE with realistic pre-seeded clinical data.
+Readings and updates will NOT persist across server restarts.
+To persist data permanently, configure a running PostgreSQL instance in .env
+======================================================================
+  `)
+}
 
 // Fallback in-memory database store for instant developer preview if PostgreSQL is not running
 function getMemoryStore() {
@@ -90,7 +105,7 @@ export async function getDbPool() {
     await initPostgresSchema(pool)
     return pool
   } catch (err) {
-    console.warn('⚠️ PostgreSQL connection failed; using local in-memory store for instant preview:', err.message)
+    logMemoryWarning(err.message)
     useMemoryFallback = true
     pool = null
     return null
@@ -105,17 +120,20 @@ async function initPostgresSchema(p) {
       email VARCHAR(255) UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role VARCHAR(20) DEFAULT 'patient',
+      timezone VARCHAR(50) DEFAULT 'UTC',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS readings (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       reading_date DATE NOT NULL,
       time_slot VARCHAR(30) NOT NULL CHECK (time_slot IN ('morning_fasting','after_breakfast','after_lunch','after_dinner')),
-      value_mgdl INTEGER NOT NULL,
+      value_mgdl INTEGER NOT NULL CHECK (value_mgdl BETWEEN 40 AND 600),
+      notes VARCHAR(200),
+      tags TEXT[] DEFAULT '{}',
       created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE (user_id, reading_date, time_slot)
+      CONSTRAINT uq_user_date_slot UNIQUE (user_id, reading_date, time_slot)
     );
 
     CREATE INDEX IF NOT EXISTS idx_readings_user_date ON readings (user_id, reading_date);
@@ -152,6 +170,38 @@ async function initPostgresSchema(p) {
       }
     }
   }
+}
+
+/**
+ * Returns current database backend mode
+ */
+export async function getDbStatus() {
+  const p = await getDbPool()
+  return p ? 'postgres' : 'memory'
+}
+
+/**
+ * Universal transaction wrapper for atomic database operations
+ */
+export async function withTransaction(callback) {
+  const p = await getDbPool()
+  if (p) {
+    const client = await p.connect()
+    try {
+      await client.query('BEGIN')
+      const result = await callback(client)
+      await client.query('COMMIT')
+      return result
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  }
+
+  // Fallback memory engine (atomic in single-threaded event loop)
+  return callback({ query })
 }
 
 /**

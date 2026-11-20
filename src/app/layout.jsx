@@ -2,6 +2,7 @@ import '@/styles/globals.css'
 import '@/styles/components.css'
 import { AuthProvider } from '@/context/AuthContext'
 import Navbar from '@/components/Navbar'
+import MemoryNoticeBanner from '@/components/MemoryNoticeBanner'
 
 export const metadata = {
   title: 'Sweety – Clinical Blood Glucose Tracker',
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <div className="app-wrapper">
+            <MemoryNoticeBanner />
             <Navbar />
             <main className="main-content">
               {children}

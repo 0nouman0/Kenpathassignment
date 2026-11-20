@@ -81,6 +81,17 @@ export async function PUT(req, { params }) {
 
     return NextResponse.json(result.rows[0])
   } catch (err) {
+    if (
+      err.code === '23505' ||
+      err.message?.includes('duplicate key') ||
+      err.message?.includes('uq_user_date_slot')
+    ) {
+      const slotName = SLOT_DISPLAY_NAMES[body?.time_slot] || body?.time_slot || 'slot'
+      return NextResponse.json(
+        { error: `You already have an ${slotName} reading for this date.` },
+        { status: 409 }
+      )
+    }
     console.error('PUT /api/readings/[id] error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

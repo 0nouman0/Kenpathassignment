@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { query, withTransaction } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
 import { validateReadingInput, SLOT_DISPLAY_NAMES } from '@/lib/validations'
 
@@ -67,6 +67,7 @@ export async function GET(req) {
  * POST /api/readings
  */
 export async function POST(req) {
+  let time_slot_for_error = ''
   try {
     const user = await getAuthUser(req)
     if (!user) {
@@ -79,39 +80,72 @@ export async function POST(req) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    const { reading_date, time_slot, value_mgdl } = body
+    const { reading_date, time_slot, value_mgdl, notes, tags } = body
+    time_slot_for_error = time_slot
+    const slotName = SLOT_DISPLAY_NAMES[time_slot] || time_slot
 
-    // Check Rule: Maximum 4 readings per day
-    const countRes = await query(
-      'SELECT COUNT(*) FROM readings WHERE user_id = $1 AND reading_date = $2',
-      [user.id, reading_date]
-    )
-    if (parseInt(countRes.rows[0].count, 10) >= MAX_READINGS_PER_DAY) {
-      return NextResponse.json({ error: 'You can add only 4 readings per day.' }, { status: 400 })
+    try {
+      const inserted = await withTransaction(async (client) => {
+        // 1. Transaction-safe check: Maximum 4 readings per day
+        const countRes = await client.query(
+          'SELECT COUNT(*) FROM readings WHERE user_id = $1 AND reading_date = $2',
+          [user.id, reading_date]
+        )
+        if (parseInt(countRes.rows[0].count, 10) >= MAX_READINGS_PER_DAY) {
+          const err = new Error('You can add only 4 readings per day.')
+          err.statusCode = 400
+          throw err
+        }
+
+        // 2. Transaction-safe check: Only one reading per slot per day
+        const dupCheck = await client.query(
+          'SELECT id FROM readings WHERE user_id = $1 AND reading_date = $2 AND time_slot = $3',
+          [user.id, reading_date, time_slot]
+        )
+        if (dupCheck.rows.length > 0) {
+          const err = new Error(`You already have an ${slotName} reading for this date.`)
+          err.statusCode = 409
+          throw err
+        }
+
+        const insertRes = await client.query(
+          `INSERT INTO readings (user_id, reading_date, time_slot, value_mgdl)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id, user_id, reading_date, time_slot, value_mgdl, created_at`,
+          [user.id, reading_date, time_slot, parseInt(value_mgdl, 10)]
+        )
+        return insertRes.rows[0]
+      })
+
+      return NextResponse.json(inserted, { status: 201 })
+    } catch (txErr) {
+      // Map DB unique constraint violation (Postgres error code 23505) to identical message
+      if (
+        txErr.code === '23505' ||
+        txErr.message?.includes('duplicate key') ||
+        txErr.message?.includes('uq_user_date_slot')
+      ) {
+        return NextResponse.json(
+          { error: `You already have an ${slotName} reading for this date.` },
+          { status: 409 }
+        )
+      }
+      if (txErr.statusCode === 400 || txErr.message === 'You can add only 4 readings per day.') {
+        return NextResponse.json({ error: 'You can add only 4 readings per day.' }, { status: 400 })
+      }
+      if (txErr.statusCode === 409 || txErr.message?.startsWith('You already have an')) {
+        return NextResponse.json({ error: txErr.message }, { status: 409 })
+      }
+      throw txErr
     }
-
-    // Check Rule: Only one reading per slot per day
-    const dupCheck = await query(
-      'SELECT id FROM readings WHERE user_id = $1 AND reading_date = $2 AND time_slot = $3',
-      [user.id, reading_date, time_slot]
-    )
-    if (dupCheck.rows.length > 0) {
-      const slotName = SLOT_DISPLAY_NAMES[time_slot] || time_slot
+  } catch (err) {
+    if (err.code === '23505') {
+      const slotName = SLOT_DISPLAY_NAMES[time_slot_for_error] || time_slot_for_error
       return NextResponse.json(
         { error: `You already have an ${slotName} reading for this date.` },
         { status: 409 }
       )
     }
-
-    const result = await query(
-      `INSERT INTO readings (user_id, reading_date, time_slot, value_mgdl)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, user_id, reading_date, time_slot, value_mgdl, created_at`,
-      [user.id, reading_date, time_slot, parseInt(value_mgdl, 10)]
-    )
-
-    return NextResponse.json(result.rows[0], { status: 201 })
-  } catch (err) {
     console.error('POST /api/readings error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
