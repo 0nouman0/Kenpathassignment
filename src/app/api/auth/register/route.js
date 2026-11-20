@@ -1,23 +1,51 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import { hashPassword, signToken } from '@/lib/auth'
+import { hashPassword, signToken, AUTH_COOKIE_NAME, AUTH_COOKIE_OPTIONS } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rateLimit'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(req) {
   try {
-    const body = await req.json()
-    const { name, email, password } = body
+    const body = await req.json().catch(() => ({}))
+    const { name, email, password, timezone = 'UTC' } = body
 
-    if (!name || !name.trim()) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Name is required.' }, { status: 400 })
     }
-    if (!email || !email.trim()) {
-      return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
+    if (name.trim().length > 100) {
+      return NextResponse.json({ error: 'Name must be 100 characters or fewer.' }, { status: 400 })
     }
-    if (!password || password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 })
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
     }
 
     const cleanEmail = email.trim().toLowerCase()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(cleanEmail) || cleanEmail.length > 255) {
+      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 })
+    }
+    if (password.length > 128) {
+      return NextResponse.json({ error: 'Password is too long.' }, { status: 400 })
+    }
+
+    // Rate limiting: 10 attempts per 15 min per IP
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1'
+    const rateLimit = checkRateLimit(`register:${ip}`, 10, 15 * 60 * 1000)
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+        }
+      )
+    }
 
     // Check duplicate email
     const existing = await query('SELECT id FROM users WHERE email = $1', [cleanEmail])
@@ -26,22 +54,25 @@ export async function POST(req) {
     }
 
     const passwordHash = await hashPassword(password)
+    const safeTimezone = typeof timezone === 'string' && timezone.length < 50 ? timezone : 'UTC'
+
     const result = await query(
-      'INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, role, created_at',
-      [name.trim(), cleanEmail, passwordHash]
+      'INSERT INTO users (name, email, password_hash, timezone) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, timezone, created_at',
+      [name.trim(), cleanEmail, passwordHash, safeTimezone]
     )
 
     const user = result.rows[0]
-    const token = signToken(user)
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role || 'patient',
+      timezone: user.timezone || 'UTC',
+    }
+    const token = signToken(safeUser)
 
-    const response = NextResponse.json({ token, user }, { status: 201 })
-    response.cookies.set('sweety_token', token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    })
+    const response = NextResponse.json({ user: safeUser }, { status: 201 })
+    response.cookies.set(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS)
 
     return response
   } catch (err) {

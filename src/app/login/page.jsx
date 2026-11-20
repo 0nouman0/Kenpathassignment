@@ -1,17 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { BloodDropIcon, AlertTriangleIcon } from '@/components/Icons'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, sessionToast } = useAuth()
   const router = useRouter()
-  const [form, setForm] = useState({ email: 'demo@sweety.app', password: 'Demo1234!' })
+  const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [demoMode, setDemoMode] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/config')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.demoMode) {
+          setDemoMode(true)
+          setForm({ email: 'demo@sweety.app', password: 'Demo1234!' })
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -38,7 +51,7 @@ export default function LoginPage() {
         return
       }
 
-      login(data.token, data.user)
+      login(data.user)
       router.push('/')
     } catch {
       setError('Network connection failed. Please try again.')
@@ -59,6 +72,12 @@ export default function LoginPage() {
         </div>
 
         <h2 className="auth-title">Sign In to Your Account</h2>
+
+        {sessionToast && (
+          <div className="form-error-banner" style={{ background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' }}>
+            <span>{sessionToast.message}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           {error && (
@@ -109,11 +128,13 @@ export default function LoginPage() {
           Don&apos;t have an account? <Link href="/register">Create an account</Link>
         </p>
 
-        <div className="auth-demo-hint">
-          <strong>Pre-loaded Demo Patient:</strong>
-          <br />
-          Email: <code>demo@sweety.app</code> · Password: <code>Demo1234!</code>
-        </div>
+        {demoMode && (
+          <div className="auth-demo-hint">
+            <strong>Demo Patient Credentials (DEMO_MODE=true):</strong>
+            <br />
+            Email: <code>demo@sweety.app</code> · Password: <code>Demo1234!</code>
+          </div>
+        )}
       </div>
     </div>
   )

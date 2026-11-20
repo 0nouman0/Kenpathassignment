@@ -7,44 +7,62 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [sessionToast, setSessionToast] = useState(null)
   const router = useRouter()
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('sweety_token')
-    localStorage.removeItem('sweety_user')
-    document.cookie = 'sweety_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    setUser(null)
-    setToken(null)
-    router.push('/login')
-  }, [router])
-
-  const login = useCallback((jwtToken, userData) => {
-    localStorage.setItem('sweety_token', jwtToken)
-    localStorage.setItem('sweety_user', JSON.stringify(userData))
-    document.cookie = `sweety_token=${jwtToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
-    setToken(jwtToken)
-    setUser(userData)
-  }, [])
-
-  useEffect(() => {
+  const refreshUser = useCallback(async () => {
     try {
-      const storedToken = localStorage.getItem('sweety_token')
-      const storedUser = localStorage.getItem('sweety_user')
-      if (storedToken && storedUser) {
-        setToken(storedToken)
-        setUser(JSON.parse(storedUser))
+      const res = await fetch('/api/auth/me', { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      } else {
+        setUser(null)
       }
-    } catch (e) {
-      console.error('Failed to restore auth:', e)
+    } catch {
+      setUser(null)
     } finally {
       setLoading(false)
     }
   }, [])
 
+  const logout = useCallback(async (isSessionExpired = false) => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (e) {
+      console.warn('Logout API call failed:', e)
+    }
+    setUser(null)
+    if (isSessionExpired) {
+      setSessionToast({ type: 'error', message: 'Your session expired. Please sign in again.' })
+    }
+    router.push('/login')
+  }, [router])
+
+  const login = useCallback((userData) => {
+    setUser(userData)
+    setSessionToast(null)
+  }, [])
+
+  useEffect(() => {
+    refreshUser()
+  }, [refreshUser])
+
+  // Custom fetch wrapper that handles 401 globally
+  const authFetch = useCallback(
+    async (url, options = {}) => {
+      const res = await fetch(url, options)
+      if (res.status === 401) {
+        logout(true)
+      }
+      return res
+    },
+    [logout]
+  )
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, authFetch, sessionToast, setSessionToast }}>
       {children}
     </AuthContext.Provider>
   )

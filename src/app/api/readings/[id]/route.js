@@ -3,6 +3,35 @@ import { query } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
 import { validateReadingInput, SLOT_DISPLAY_NAMES } from '@/lib/validations'
 
+export const dynamic = 'force-dynamic'
+
+/**
+ * GET /api/readings/:id
+ */
+export async function GET(req, { params }) {
+  try {
+    const user = await getAuthUser(req)
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const readingId = parseInt(params.id, 10)
+    const result = await query(
+      'SELECT id, user_id, reading_date, time_slot, value_mgdl, created_at FROM readings WHERE id = $1 AND user_id = $2',
+      [readingId, user.id]
+    )
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Reading not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(result.rows[0])
+  } catch (err) {
+    console.error('GET /api/readings/[id] error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 /**
  * PUT /api/readings/:id
  */
@@ -22,13 +51,10 @@ export async function PUT(req, { params }) {
 
     const { reading_date, time_slot, value_mgdl } = body
 
-    // Ownership check
-    const existing = await query('SELECT id, user_id FROM readings WHERE id = $1', [readingId])
+    // Ownership check: must return 404 for non-existent or other user's reading
+    const existing = await query('SELECT id, user_id FROM readings WHERE id = $1 AND user_id = $2', [readingId, user.id])
     if (existing.rows.length === 0) {
       return NextResponse.json({ error: 'Reading not found' }, { status: 404 })
-    }
-    if (existing.rows[0].user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Check duplicate slot (excluding this record)
@@ -77,7 +103,7 @@ export async function DELETE(req, { params }) {
     ])
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ error: 'Reading not found or access denied' }, { status: 404 })
+      return NextResponse.json({ error: 'Reading not found' }, { status: 404 })
     }
 
     return NextResponse.json({ message: 'Reading deleted successfully', id: readingId })
