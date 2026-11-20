@@ -1,5 +1,7 @@
 # 🩸 Sweety – Full-Stack Next.js Blood Glucose Tracker
 
+[![CI](https://github.com/mohammed/sweety/actions/workflows/ci.yml/badge.svg)](https://github.com/mohammed/sweety/actions)
+
 A production-grade, full-stack medical application built with **Next.js 14 (App Router), React 18, and PostgreSQL**. Designed for diabetes patients to accurately record up to **4 blood glucose readings per day** across standard metabolic windows (Morning fasting, After breakfast, After lunch, After dinner), track daily clinical compliance, and generate daily and monthly analytical reports.
 
 ---

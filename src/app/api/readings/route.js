@@ -80,7 +80,7 @@ export async function POST(req) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    const { reading_date, time_slot, value_mgdl, notes, tags } = body
+    const { reading_date, time_slot, value_mgdl, _notes, _tags } = body
     time_slot_for_error = time_slot
     const slotName = SLOT_DISPLAY_NAMES[time_slot] || time_slot
 
