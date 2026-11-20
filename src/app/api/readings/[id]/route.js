@@ -44,7 +44,7 @@ export async function PUT(req, { params }) {
 
     const readingId = parseInt(params.id, 10)
     const body = await req.json()
-    const validation = validateReadingInput(body)
+    const validation = validateReadingInput(body, user.timezone)
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }

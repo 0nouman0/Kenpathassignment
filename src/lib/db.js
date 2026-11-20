@@ -37,6 +37,7 @@ function getMemoryStore() {
       email: 'demo@sweety.app',
       password_hash: passwordHash,
       role: 'patient',
+      timezone: 'UTC',
       created_at: new Date().toISOString(),
     },
   ]
@@ -232,10 +233,11 @@ export async function query(sqlText, params = []) {
       email: params[1],
       password_hash: params[2],
       role: 'patient',
+      timezone: params[3] || 'UTC',
       created_at: new Date().toISOString(),
     }
     store.users.push(user)
-    return { rows: [{ id: user.id, name: user.name, email: user.email, role: user.role, created_at: user.created_at }] }
+    return { rows: [{ id: user.id, name: user.name, email: user.email, role: user.role, timezone: user.timezone, created_at: user.created_at }] }
   }
 
   // 3. SELECT user by id

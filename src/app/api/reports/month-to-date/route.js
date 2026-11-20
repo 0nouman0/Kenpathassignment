@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
+import { getMonthToDateRange } from '@/lib/date'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,9 +29,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url)
     const date = searchParams.get('date') || new Date().toISOString().slice(0, 10)
 
-    const [year, month] = date.split('-')
-    const from = `${year}-${month}-01`
-    const to = date
+    const { from, to } = getMonthToDateRange(date)
 
     const result = await query(
       `SELECT id, user_id, reading_date, time_slot, value_mgdl, created_at

@@ -1,3 +1,5 @@
+import { isDateInFuture } from './date'
+
 /**
  * Strict validation rules matching Kenpath assignment requirements
  */
@@ -16,7 +18,7 @@ export const SLOT_DISPLAY_NAMES = {
   after_dinner: 'After dinner',
 }
 
-export function validateReadingInput({ reading_date, time_slot, value_mgdl }) {
+export function validateReadingInput({ reading_date, time_slot, value_mgdl }, userTimezone = 'UTC') {
   // Rule 1: Value is required
   if (value_mgdl === undefined || value_mgdl === null || value_mgdl === '') {
     return { valid: false, error: 'Please enter a glucose value.', field: 'value_mgdl' }
@@ -33,8 +35,7 @@ export function validateReadingInput({ reading_date, time_slot, value_mgdl }) {
     return { valid: false, error: 'Please select a date.', field: 'reading_date' }
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10)
-  if (reading_date > todayStr) {
+  if (isDateInFuture(reading_date, userTimezone)) {
     return { valid: false, error: 'Date cannot be in the future.', field: 'reading_date' }
   }
 

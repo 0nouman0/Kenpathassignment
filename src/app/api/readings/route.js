@@ -75,7 +75,7 @@ export async function POST(req) {
     }
 
     const body = await req.json()
-    const validation = validateReadingInput(body)
+    const validation = validateReadingInput(body, user.timezone)
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }

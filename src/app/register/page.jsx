@@ -39,10 +39,11 @@ export default function RegisterPage() {
     setLoading(true)
     setFormError('')
     try {
+      const userTimezone = Intl?.DateTimeFormat?.().resolvedOptions()?.timeZone || 'UTC'
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, timezone: userTimezone }),
       })
       const data = await res.json()
       if (!res.ok) {
