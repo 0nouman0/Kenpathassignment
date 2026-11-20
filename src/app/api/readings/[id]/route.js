@@ -17,11 +17,11 @@ export async function GET(req, { params }) {
 
     const readingId = parseInt(params.id, 10)
     const result = await query(
-      'SELECT id, user_id, reading_date, time_slot, value_mgdl, created_at FROM readings WHERE id = $1 AND user_id = $2',
-      [readingId, user.id]
+      'SELECT id, user_id, reading_date, time_slot, value_mgdl, created_at FROM readings WHERE id = $1',
+      [readingId]
     )
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 || result.rows[0].user_id !== user.id) {
       return NextResponse.json({ error: 'Reading not found' }, { status: 404 })
     }
 
@@ -36,6 +36,7 @@ export async function GET(req, { params }) {
  * PUT /api/readings/:id
  */
 export async function PUT(req, { params }) {
+  let body
   try {
     const user = await getAuthUser(req)
     if (!user) {
@@ -43,7 +44,7 @@ export async function PUT(req, { params }) {
     }
 
     const readingId = parseInt(params.id, 10)
-    const body = await req.json()
+    body = await req.json()
     const validation = validateReadingInput(body, user.timezone)
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
@@ -52,8 +53,8 @@ export async function PUT(req, { params }) {
     const { reading_date, time_slot, value_mgdl } = body
 
     // Ownership check: must return 404 for non-existent or other user's reading
-    const existing = await query('SELECT id, user_id FROM readings WHERE id = $1 AND user_id = $2', [readingId, user.id])
-    if (existing.rows.length === 0) {
+    const existing = await query('SELECT id, user_id FROM readings WHERE id = $1', [readingId])
+    if (existing.rows.length === 0 || existing.rows[0].user_id !== user.id) {
       return NextResponse.json({ error: 'Reading not found' }, { status: 404 })
     }
 
@@ -78,6 +79,10 @@ export async function PUT(req, { params }) {
        RETURNING id, user_id, reading_date, time_slot, value_mgdl, created_at`,
       [reading_date, time_slot, parseInt(value_mgdl, 10), readingId, user.id]
     )
+
+    if (!result.rows || result.rows.length === 0) {
+      return NextResponse.json({ error: 'Reading not found' }, { status: 404 })
+    }
 
     return NextResponse.json(result.rows[0])
   } catch (err) {

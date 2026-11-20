@@ -17,7 +17,11 @@ export default function Toast({ toast, onClose }) {
   const isError = toast.type === 'error'
 
   return (
-    <div className={`toast-container ${isError ? 'toast-error' : 'toast-success'}`} role="status">
+    <div
+      className={`toast-container ${isError ? 'toast-error' : 'toast-success'}`}
+      role="status"
+      aria-live={isError ? 'assertive' : 'polite'}
+    >
       <div className="toast-icon">
         {isError ? <AlertTriangleIcon size={18} /> : <CheckCircleIcon size={18} />}
       </div>

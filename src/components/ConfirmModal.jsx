@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { AlertTriangleIcon, CloseIcon } from './Icons'
 
 export default function ConfirmModal({
@@ -14,10 +14,28 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }) {
+  const modalBoxRef = useRef(null)
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !isLoading) {
         onCancel()
+      }
+      if (e.key === 'Tab' && modalBoxRef.current) {
+        const focusable = modalBoxRef.current.querySelectorAll(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
       }
     }
     if (isOpen) {
@@ -30,7 +48,7 @@ export default function ConfirmModal({
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !isLoading && onCancel()}>
-      <div className="confirm-modal-box" role="dialog" aria-modal="true">
+      <div className="confirm-modal-box" role="dialog" aria-modal="true" ref={modalBoxRef}>
         <div className="confirm-modal-header">
           <div className={`confirm-icon-wrapper ${isDestructive ? 'confirm-destructive' : 'confirm-info'}`}>
             <AlertTriangleIcon size={22} />
