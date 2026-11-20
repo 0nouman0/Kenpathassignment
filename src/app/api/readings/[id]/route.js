@@ -50,7 +50,9 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    const { reading_date, time_slot, value_mgdl } = body
+    const { reading_date, time_slot, value_mgdl, notes, tags } = body
+    const safeNotes = typeof notes === 'string' ? notes.slice(0, 200).trim() : null
+    const safeTags = Array.isArray(tags) ? tags.filter((t) => typeof t === 'string' && t.length <= 50) : []
 
     // Ownership check: must return 404 for non-existent or other user's reading
     const existing = await query('SELECT id, user_id FROM readings WHERE id = $1', [readingId])
@@ -74,10 +76,10 @@ export async function PUT(req, { params }) {
 
     const result = await query(
       `UPDATE readings
-       SET reading_date = $1, time_slot = $2, value_mgdl = $3
-       WHERE id = $4 AND user_id = $5
-       RETURNING id, user_id, reading_date, time_slot, value_mgdl, created_at`,
-      [reading_date, time_slot, parseInt(value_mgdl, 10), readingId, user.id]
+       SET reading_date = $1, time_slot = $2, value_mgdl = $3, notes = $4, tags = $5
+       WHERE id = $6 AND user_id = $7
+       RETURNING id, user_id, reading_date, time_slot, value_mgdl, notes, tags, created_at`,
+      [reading_date, time_slot, parseInt(value_mgdl, 10), safeNotes, safeTags, readingId, user.id]
     )
 
     if (!result.rows || result.rows.length === 0) {

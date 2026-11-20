@@ -1360,3 +1360,39 @@ input.input-error:focus, select.input-error:focus {
     display: none;
   }
 }
+
+/* ============================================================
+   PRINT STYLES (@media print) – Doctor Summary & Reports
+   ============================================================ */
+@media print {
+  .navbar,
+  .filter-bar,
+  .btn,
+  .btn-icon,
+  .unit-toggle-btn,
+  .form-actions,
+  .modal-overlay,
+  .toast-container,
+  [role="status"] {
+    display: none !important;
+  }
+
+  body, .app-wrapper, .main-content, .page {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #000000 !important;
+  }
+
+  .report-card, .table-wrapper {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    break-inside: avoid;
+  }
+
+  .page-header {
+    margin-bottom: 16px;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 8px;
+  }
+}

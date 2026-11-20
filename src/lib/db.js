@@ -275,6 +275,8 @@ export async function query(sqlText, params = []) {
       reading_date: params[1],
       time_slot: params[2],
       value_mgdl: Number(params[3]),
+      notes: params[4] || null,
+      tags: params[5] || [],
       created_at: new Date().toISOString(),
     }
     store.readings.push(newReading)
@@ -283,15 +285,32 @@ export async function query(sqlText, params = []) {
 
   // 7. UPDATE reading
   if (lower.includes('update readings set')) {
-    const readingId = Number(params[3])
-    const userId = Number(params[4])
+    let readingId, userId, rDate, rSlot, rVal, rNotes, rTags
+    if (params.length >= 7) {
+      rDate = params[0]
+      rSlot = params[1]
+      rVal = Number(params[2])
+      rNotes = params[3]
+      rTags = params[4]
+      readingId = Number(params[5])
+      userId = Number(params[6])
+    } else {
+      rDate = params[0]
+      rSlot = params[1]
+      rVal = Number(params[2])
+      readingId = Number(params[3])
+      userId = Number(params[4])
+    }
+
     const idx = store.readings.findIndex((r) => r.id === readingId && r.user_id === userId)
     if (idx !== -1) {
       store.readings[idx] = {
         ...store.readings[idx],
-        reading_date: params[0],
-        time_slot: params[1],
-        value_mgdl: Number(params[2]),
+        reading_date: rDate,
+        time_slot: rSlot,
+        value_mgdl: rVal,
+        notes: rNotes !== undefined ? rNotes : store.readings[idx].notes,
+        tags: rTags !== undefined ? rTags : store.readings[idx].tags,
       }
       return { rows: [{ ...store.readings[idx] }] }
     }

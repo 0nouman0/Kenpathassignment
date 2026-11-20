@@ -2,6 +2,8 @@ import React from 'react'
 import EmptyState from './EmptyState'
 import { EditIcon, TrashIcon, ClockIcon } from './Icons'
 import { SLOT_CONFIG, getGlucoseStatus, formatDisplayDate } from '@/lib/glucose'
+import { useGlucoseUnit } from '@/context/UnitContext'
+import { PRESET_TAGS, convertMgdlToMmol } from '@/config/clinical'
 
 export default function ReadingList({
   readings = [],
@@ -9,6 +11,8 @@ export default function ReadingList({
   onDelete,
   loading,
 }) {
+  const { unit } = useGlucoseUnit()
+
   if (loading) {
     return (
       <div className="table-wrapper" style={{ padding: '60px 20px', textAlign: 'center' }}>
@@ -27,6 +31,8 @@ export default function ReadingList({
     )
   }
 
+  const tagMap = Object.fromEntries(PRESET_TAGS.map((t) => [t.id, t.label]))
+
   return (
     <div className="table-wrapper">
       <table className="readings-table">
@@ -36,6 +42,7 @@ export default function ReadingList({
             <th>Time Slot</th>
             <th>Glucose Value</th>
             <th>Clinical Status</th>
+            <th>Notes & Tags</th>
             <th style={{ textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
@@ -43,6 +50,9 @@ export default function ReadingList({
           {readings.map((r) => {
             const slotInfo = SLOT_CONFIG[r.time_slot] || { label: r.time_slot }
             const status = getGlucoseStatus(r.value_mgdl, r.time_slot)
+            const displayVal = unit === 'mmol' ? convertMgdlToMmol(r.value_mgdl) : r.value_mgdl
+            const unitLabel = unit === 'mmol' ? 'mmol/L' : 'mg/dL'
+
             return (
               <tr key={r.id}>
                 <td className="date-cell-formatted">
@@ -56,10 +66,10 @@ export default function ReadingList({
                 </td>
                 <td>
                   <span style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--slate-900)' }}>
-                    {r.value_mgdl}
+                    {displayVal}
                   </span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', marginLeft: '3px' }}>
-                    mg/dL
+                    {unitLabel}
                   </span>
                 </td>
                 <td>
@@ -67,6 +77,38 @@ export default function ReadingList({
                     <span className="status-badge-dot" />
                     <span>{status.label}</span>
                   </span>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {r.tags && r.tags.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {r.tags.map((tagId) => (
+                          <span
+                            key={tagId}
+                            style={{
+                              padding: '2px 6px',
+                              borderRadius: '12px',
+                              fontSize: '0.7rem',
+                              fontWeight: 500,
+                              background: '#f1f5f9',
+                              color: '#334155',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            {tagMap[tagId] || tagId}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {r.notes && (
+                      <span style={{ fontSize: '0.775rem', color: '#64748b', fontStyle: 'italic' }}>
+                        &ldquo;{r.notes}&rdquo;
+                      </span>
+                    )}
+                    {(!r.tags || r.tags.length === 0) && !r.notes && (
+                      <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>–</span>
+                    )}
+                  </div>
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div className="actions-cell" style={{ justifyContent: 'flex-end' }}>

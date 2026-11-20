@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { CloseIcon, AlertTriangleIcon } from './Icons'
 import { getGlucoseStatus, SLOT_CONFIG } from '@/lib/glucose'
+import { PRESET_TAGS } from '@/config/clinical'
 
 const TIME_SLOTS = [
   { value: 'morning_fasting', label: 'Morning (fasting)' },
@@ -28,6 +29,8 @@ export default function ReadingForm({
     reading_date: reading?.reading_date || defaultDate || todayStr(),
     time_slot: reading?.time_slot || defaultSlot || 'morning_fasting',
     value_mgdl: reading?.value_mgdl ?? '',
+    notes: reading?.notes || '',
+    tags: reading?.tags || [],
   })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
@@ -39,6 +42,8 @@ export default function ReadingForm({
         reading_date: reading.reading_date,
         time_slot: reading.time_slot,
         value_mgdl: reading.value_mgdl,
+        notes: reading.notes || '',
+        tags: reading.tags || [],
       })
     }
   }, [reading])
@@ -78,6 +83,16 @@ export default function ReadingForm({
     setFormError('')
   }
 
+  const handleToggleTag = (tagId) => {
+    setForm((prev) => {
+      const currentTags = prev.tags || []
+      const nextTags = currentTags.includes(tagId)
+        ? currentTags.filter((t) => t !== tagId)
+        : [...currentTags, tagId]
+      return { ...prev, tags: nextTags }
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const errs = validate()
@@ -94,6 +109,8 @@ export default function ReadingForm({
         reading_date: form.reading_date,
         time_slot: form.time_slot,
         value_mgdl: parseInt(form.value_mgdl, 10),
+        notes: form.notes ? form.notes.trim() : null,
+        tags: form.tags || [],
       }
 
       const headers = { 'Content-Type': 'application/json' }
@@ -220,6 +237,62 @@ export default function ReadingForm({
                 <span style={{ fontWeight: 600 }}>{numericVal} mg/dL</span>
               </div>
             )}
+          </div>
+
+          <div className="form-group">
+            <label>Context Tags (Optional)</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+              {PRESET_TAGS.map((tag) => {
+                const isSelected = form.tags?.includes(tag.id)
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => handleToggleTag(tag.id)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      border: isSelected ? '1px solid #0d9488' : '1px solid #cbd5e1',
+                      background: isSelected ? '#f0fdfa' : '#ffffff',
+                      color: isSelected ? '#115e59' : '#475569',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {isSelected ? '✓ ' : '+ '}{tag.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label htmlFor="notes">Clinical Note (Optional)</label>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                {(form.notes || '').length}/200
+              </span>
+            </div>
+            <textarea
+              id="notes"
+              name="notes"
+              value={form.notes}
+              onChange={handleChange}
+              maxLength={200}
+              placeholder="e.g. Post-workout reading, light breakfast"
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.875rem',
+                fontFamily: 'inherit',
+                resize: 'none',
+              }}
+            />
           </div>
 
           <div className="form-actions">

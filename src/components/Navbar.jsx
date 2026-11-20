@@ -4,10 +4,12 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
+import { useGlucoseUnit } from '@/context/UnitContext'
 import { BloodDropIcon, ActivityIcon, CalendarIcon, FileTextIcon, LogoutIcon } from './Icons'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
+  const { unit, toggleUnit } = useGlucoseUnit()
   const pathname = usePathname()
 
   if (!user && (pathname === '/login' || pathname === '/register')) {
@@ -53,6 +55,29 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-user">
+        <button
+          type="button"
+          onClick={toggleUnit}
+          title={`Click to switch between mg/dL and mmol/L (Current: ${unit === 'mgdl' ? 'mg/dL' : 'mmol/L'})`}
+          aria-label={`Toggle glucose unit, currently ${unit === 'mgdl' ? 'mg/dL' : 'mmol/L'}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '4px 8px',
+            borderRadius: '16px',
+            border: '1px solid #cbd5e1',
+            background: '#f8fafc',
+            cursor: 'pointer',
+            fontSize: '0.725rem',
+            fontWeight: 600,
+          }}
+        >
+          <span style={{ color: unit === 'mgdl' ? '#0d9488' : '#94a3b8' }}>mg/dL</span>
+          <span style={{ color: '#cbd5e1' }}>|</span>
+          <span style={{ color: unit === 'mmol' ? '#0d9488' : '#94a3b8' }}>mmol/L</span>
+        </button>
+
         {user ? (
           <>
             <div className="user-profile-badge" title={user.email}>

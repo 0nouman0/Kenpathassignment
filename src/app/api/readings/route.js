@@ -19,13 +19,14 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url)
     const date = searchParams.get('date')
+    const tag = searchParams.get('tag')
     const page = Math.max(1, parseInt(searchParams.get('page'), 10) || 1)
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit'), 10) || 20))
     const offset = (page - 1) * limit
 
     let countQuery = 'SELECT COUNT(*) FROM readings WHERE user_id = $1'
     let dataQuery = `
-      SELECT id, user_id, reading_date, time_slot, value_mgdl, created_at
+      SELECT id, user_id, reading_date, time_slot, value_mgdl, notes, tags, created_at
       FROM readings
       WHERE user_id = $1
     `
@@ -35,6 +36,12 @@ export async function GET(req) {
       params.push(date)
       countQuery += ` AND reading_date = $${params.length}`
       dataQuery += ` AND reading_date = $${params.length}`
+    }
+
+    if (tag) {
+      params.push(tag)
+      countQuery += ` AND $${params.length} = ANY(tags)`
+      dataQuery += ` AND $${params.length} = ANY(tags)`
     }
 
     dataQuery += ` ORDER BY reading_date DESC, time_slot ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
@@ -80,7 +87,9 @@ export async function POST(req) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
-    const { reading_date, time_slot, value_mgdl, _notes, _tags } = body
+    const { reading_date, time_slot, value_mgdl, notes, tags } = body
+    const safeNotes = typeof notes === 'string' ? notes.slice(0, 200).trim() : null
+    const safeTags = Array.isArray(tags) ? tags.filter((t) => typeof t === 'string' && t.length <= 50) : []
     time_slot_for_error = time_slot
     const slotName = SLOT_DISPLAY_NAMES[time_slot] || time_slot
 
@@ -109,10 +118,10 @@ export async function POST(req) {
         }
 
         const insertRes = await client.query(
-          `INSERT INTO readings (user_id, reading_date, time_slot, value_mgdl)
-           VALUES ($1, $2, $3, $4)
-           RETURNING id, user_id, reading_date, time_slot, value_mgdl, created_at`,
-          [user.id, reading_date, time_slot, parseInt(value_mgdl, 10)]
+          `INSERT INTO readings (user_id, reading_date, time_slot, value_mgdl, notes, tags)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, user_id, reading_date, time_slot, value_mgdl, notes, tags, created_at`,
+          [user.id, reading_date, time_slot, parseInt(value_mgdl, 10), safeNotes, safeTags]
         )
         return insertRes.rows[0]
       })

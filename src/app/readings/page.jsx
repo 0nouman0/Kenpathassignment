@@ -8,6 +8,9 @@ import ReadingForm from '@/components/ReadingForm'
 import ConfirmModal from '@/components/ConfirmModal'
 import Toast from '@/components/Toast'
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@/components/Icons'
+import { PRESET_TAGS } from '@/config/clinical'
+import { SLOT_DISPLAY_NAMES } from '@/lib/validations'
+import { getGlucoseStatus } from '@/lib/glucose'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -23,6 +26,7 @@ export default function ReadingsPage() {
   const [readings, setReadings] = useState([])
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState('')
+  const [tag, setTag] = useState('')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [showForm, setShowForm] = useState(false)
@@ -45,6 +49,7 @@ export default function ReadingsPage() {
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
       let url = `/api/readings?page=${page}&limit=${LIMIT}`
       if (date) url += `&date=${date}`
+      if (tag) url += `&tag=${tag}`
 
       const res = await fetch(url, { headers })
       if (res.ok) {
@@ -60,7 +65,7 @@ export default function ReadingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [date, page, user, token])
+  }, [date, tag, page, user, token])
 
   useEffect(() => {
     if (user) {
@@ -124,17 +129,47 @@ export default function ReadingsPage() {
           <h1 className="page-title">Readings History</h1>
           <p className="page-subtitle">Complete chronological log of blood glucose records</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            setEditReading(null)
-            setShowForm(true)
-          }}
-        >
-          <PlusIcon size={16} />
-          <span>Add Reading</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              if (!readings || readings.length === 0) return
+              const headers = ['Date', 'Time Slot', 'Value (mg/dL)', 'Value (mmol/L)', 'Clinical Status', 'Tags', 'Notes']
+              const csvRows = readings.map((r) => [
+                r.reading_date,
+                SLOT_DISPLAY_NAMES[r.time_slot] || r.time_slot,
+                r.value_mgdl,
+                (r.value_mgdl / 18.016).toFixed(1),
+                getGlucoseStatus(r.value_mgdl, r.time_slot).label,
+                `"${(r.tags || []).join('; ')}"`,
+                `"${(r.notes || '').replace(/"/g, '""')}"`,
+              ])
+              const csv = [headers.join(','), ...csvRows.map((e) => e.join(','))].join('\n')
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `sweety_readings_${new Date().toISOString().slice(0, 10)}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
+            title="Download CSV export of records"
+          >
+            Export CSV
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setEditReading(null)
+              setShowForm(true)
+            }}
+          >
+            <PlusIcon size={16} />
+            <span>Add Reading</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -184,6 +219,24 @@ export default function ReadingsPage() {
             >
               All Records
             </button>
+          </div>
+
+          <div className="filter-input-group" style={{ marginLeft: '8px' }}>
+            <label htmlFor="filter-tag">Tag:</label>
+            <select
+              id="filter-tag"
+              value={tag}
+              onChange={(e) => {
+                setTag(e.target.value)
+                setPage(1)
+              }}
+              style={{ padding: '6px 10px', fontSize: '0.8125rem', borderRadius: '4px', border: '1px solid var(--slate-300)' }}
+            >
+              <option value="">All Contexts</option>
+              {PRESET_TAGS.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 

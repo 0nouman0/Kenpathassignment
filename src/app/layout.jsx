@@ -1,6 +1,7 @@
 import '@/styles/globals.css'
 import '@/styles/components.css'
 import { AuthProvider } from '@/context/AuthContext'
+import { UnitProvider } from '@/context/UnitContext'
 import Navbar from '@/components/Navbar'
 import MemoryNoticeBanner from '@/components/MemoryNoticeBanner'
 
@@ -14,13 +15,15 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AuthProvider>
-          <div className="app-wrapper">
-            <MemoryNoticeBanner />
-            <Navbar />
-            <main className="main-content">
-              {children}
-            </main>
-          </div>
+          <UnitProvider>
+            <div className="app-wrapper">
+              <MemoryNoticeBanner />
+              <Navbar />
+              <main className="main-content">
+                {children}
+              </main>
+            </div>
+          </UnitProvider>
         </AuthProvider>
       </body>
     </html>

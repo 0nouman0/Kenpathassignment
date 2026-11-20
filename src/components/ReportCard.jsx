@@ -1,6 +1,8 @@
 import React from 'react'
 import { SLOT_CONFIG, getGlucoseStatus, formatDisplayDate } from '@/lib/glucose'
 import { ActivityIcon, ClockIcon } from './Icons'
+import { useGlucoseUnit } from '@/context/UnitContext'
+import { convertMgdlToMmol } from '@/config/clinical'
 
 export default function ReportCard({
   title,
@@ -9,7 +11,15 @@ export default function ReportCard({
   stats,
   readings = null,
 }) {
+  const { unit } = useGlucoseUnit()
   const hasData = stats && stats.count > 0
+  const isMmol = unit === 'mmol'
+  const unitLabel = isMmol ? 'mmol/L' : 'mg/dL'
+
+  const formatStat = (val) => {
+    if (val == null) return '—'
+    return isMmol ? convertMgdlToMmol(val) : Number(val).toFixed(val % 1 !== 0 ? 1 : 0)
+  }
 
   return (
     <div className="report-card">
@@ -42,24 +52,24 @@ export default function ReportCard({
             <div className="stat-item">
               <span className="stat-label">Highest</span>
               <div className="stat-value stat-high">
-                {stats.highest ?? '—'}
-                <span className="stat-unit">mg/dL</span>
+                {formatStat(stats.highest)}
+                <span className="stat-unit">{unitLabel}</span>
               </div>
             </div>
 
             <div className="stat-item">
               <span className="stat-label">Lowest</span>
               <div className="stat-value stat-low">
-                {stats.lowest ?? '—'}
-                <span className="stat-unit">mg/dL</span>
+                {formatStat(stats.lowest)}
+                <span className="stat-unit">{unitLabel}</span>
               </div>
             </div>
 
             <div className="stat-item">
               <span className="stat-label">Average</span>
               <div className="stat-value stat-avg">
-                {stats.average != null ? Number(stats.average).toFixed(1) : '—'}
-                <span className="stat-unit">mg/dL</span>
+                {stats.average != null ? (isMmol ? convertMgdlToMmol(stats.average) : Number(stats.average).toFixed(1)) : '—'}
+                <span className="stat-unit">{unitLabel}</span>
               </div>
             </div>
 
@@ -79,6 +89,7 @@ export default function ReportCard({
                 {readings.map((r) => {
                   const slotConfig = SLOT_CONFIG[r.time_slot] || { label: r.time_slot }
                   const status = getGlucoseStatus(r.value_mgdl, r.time_slot)
+                  const displayVal = isMmol ? convertMgdlToMmol(r.value_mgdl) : r.value_mgdl
                   return (
                     <li key={r.id} className="report-reading-item">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -88,7 +99,7 @@ export default function ReportCard({
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="reading-val">{r.value_mgdl} mg/dL</span>
+                        <span className="reading-val">{displayVal} {unitLabel}</span>
                         <span className={`status-badge ${status.className}`}>
                           <span className="status-badge-dot" />
                           <span>{status.label}</span>
