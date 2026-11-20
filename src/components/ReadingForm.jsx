@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CloseIcon, AlertTriangleIcon } from './Icons'
-import { getGlucoseStatus, SLOT_CONFIG } from '@/lib/glucose'
+import { getGlucoseStatus, SLOT_CONFIG, getDefaultSlotForCurrentTime } from '@/lib/glucose'
 import { PRESET_TAGS } from '@/config/clinical'
 
 const TIME_SLOTS = [
@@ -27,7 +27,7 @@ export default function ReadingForm({
 }) {
   const [form, setForm] = useState({
     reading_date: reading?.reading_date || defaultDate || todayStr(),
-    time_slot: reading?.time_slot || defaultSlot || 'morning_fasting',
+    time_slot: reading?.time_slot || defaultSlot || getDefaultSlotForCurrentTime(),
     value_mgdl: reading?.value_mgdl ?? '',
     notes: reading?.notes || '',
     tags: reading?.tags || [],
@@ -182,10 +182,11 @@ export default function ReadingForm({
               value={form.reading_date}
               max={todayStr()}
               onChange={handleChange}
+              aria-describedby={errors.reading_date ? 'date-error-msg' : undefined}
               className={errors.reading_date ? 'input-error' : ''}
             />
             {errors.reading_date && (
-              <span className="field-error" role="alert">{errors.reading_date}</span>
+              <span id="date-error-msg" className="field-error" role="alert">{errors.reading_date}</span>
             )}
           </div>
 
@@ -196,6 +197,7 @@ export default function ReadingForm({
               name="time_slot"
               value={form.time_slot}
               onChange={handleChange}
+              aria-describedby={errors.time_slot ? 'slot-error-msg' : undefined}
               className={errors.time_slot ? 'input-error' : ''}
             >
               {TIME_SLOTS.map((s) => (
@@ -208,7 +210,7 @@ export default function ReadingForm({
               </span>
             )}
             {errors.time_slot && (
-              <span className="field-error" role="alert">{errors.time_slot}</span>
+              <span id="slot-error-msg" className="field-error" role="alert">{errors.time_slot}</span>
             )}
           </div>
 
@@ -217,6 +219,8 @@ export default function ReadingForm({
             <input
               id="value_mgdl"
               type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
               name="value_mgdl"
               value={form.value_mgdl}
               onChange={handleChange}
@@ -225,14 +229,15 @@ export default function ReadingForm({
               max="600"
               step="1"
               autoFocus={!reading}
+              aria-describedby={errors.value_mgdl ? 'value-error-msg' : undefined}
               className={errors.value_mgdl ? 'input-error' : ''}
             />
             {errors.value_mgdl && (
-              <span className="field-error" role="alert">{errors.value_mgdl}</span>
+              <span id="value-error-msg" className="field-error" role="alert">{errors.value_mgdl}</span>
             )}
 
             {previewStatus && !errors.value_mgdl && (
-              <div className={`clinical-preview-pill ${previewStatus.className}`}>
+              <div className={`clinical-preview-pill ${previewStatus.className}`} role="status" aria-live="polite">
                 <span>● {previewStatus.label}: {previewStatus.description}</span>
                 <span style={{ fontWeight: 600 }}>{numericVal} mg/dL</span>
               </div>

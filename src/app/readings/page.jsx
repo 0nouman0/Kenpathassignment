@@ -7,6 +7,7 @@ import ReadingList from '@/components/ReadingList'
 import ReadingForm from '@/components/ReadingForm'
 import ConfirmModal from '@/components/ConfirmModal'
 import Toast from '@/components/Toast'
+import { TableSkeleton } from '@/components/Skeletons'
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@/components/Icons'
 import { PRESET_TAGS } from '@/config/clinical'
 import { SLOT_DISPLAY_NAMES } from '@/lib/validations'
@@ -89,22 +90,35 @@ export default function ReadingsPage() {
 
   const handleConfirmDelete = async () => {
     if (!deletingReading) return
+    const idToDelete = deletingReading.id
+    const prevReadings = [...readings]
+    const prevTotal = total
+
+    // Optimistically update list
+    setReadings((prev) => prev.filter((r) => r.id !== idToDelete))
+    setTotal((prev) => Math.max(0, prev - 1))
+    setDeletingReading(null)
     setDeleteLoading(true)
+
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
-      const res = await fetch(`/api/readings/${deletingReading.id}`, {
+      const res = await fetch(`/api/readings/${idToDelete}`, {
         method: 'DELETE',
         headers,
       })
       if (res.ok) {
         setToast({ type: 'success', message: 'Reading successfully deleted.' })
-        setDeletingReading(null)
-        fetchReadings()
       } else {
+        // Rollback
+        setReadings(prevReadings)
+        setTotal(prevTotal)
         const data = await res.json()
         setToast({ type: 'error', message: data.error || 'Failed to delete reading.' })
       }
     } catch {
+      // Rollback
+      setReadings(prevReadings)
+      setTotal(prevTotal)
       setToast({ type: 'error', message: 'Failed to delete reading.' })
     } finally {
       setDeleteLoading(false)
@@ -246,12 +260,16 @@ export default function ReadingsPage() {
       </div>
 
       {/* Reading Table */}
-      <ReadingList
-        readings={readings}
-        loading={loading}
-        onEdit={handleEdit}
-        onDelete={handleDeleteRequest}
-      />
+      {loading ? (
+        <TableSkeleton rows={LIMIT} />
+      ) : (
+        <ReadingList
+          readings={readings}
+          loading={false}
+          onEdit={handleEdit}
+          onDelete={handleDeleteRequest}
+        />
+      )}
 
       {/* Pagination Bar */}
       {totalPages > 1 && (

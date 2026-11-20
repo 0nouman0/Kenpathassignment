@@ -8,6 +8,16 @@ import MemoryNoticeBanner from '@/components/MemoryNoticeBanner'
 export const metadata = {
   title: 'Sweety – Clinical Blood Glucose Tracker',
   description: 'Evidence-based blood glucose tracking, daily compliance, and analytical reporting for diabetes management.',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icon.svg',
+  },
+}
+
+export const viewport = {
+  themeColor: '#0d9488',
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }) {

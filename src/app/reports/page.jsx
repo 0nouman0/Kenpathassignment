@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import ReportCard from '@/components/ReportCard'
 import GlucoseChart from '@/components/GlucoseChart'
+import { ReportCardsSkeleton, ChartSkeleton } from '@/components/Skeletons'
 import { CalendarIcon, AlertTriangleIcon } from '@/components/Icons'
 import { formatDisplayDate } from '@/lib/glucose'
 import {
@@ -205,10 +206,10 @@ export default function ReportsPage() {
       )}
 
       {loading ? (
-        <div className="page-loading">
-          <div className="spinner" />
-          <p>Calculating glycemic statistics…</p>
-        </div>
+        <>
+          <ReportCardsSkeleton />
+          <ChartSkeleton />
+        </>
       ) : (
         <>
           {/* Key Clinical Insights Row */}

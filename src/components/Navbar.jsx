@@ -5,12 +5,38 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useGlucoseUnit } from '@/context/UnitContext'
-import { BloodDropIcon, ActivityIcon, CalendarIcon, FileTextIcon, LogoutIcon } from './Icons'
+import { BloodDropIcon, ActivityIcon, CalendarIcon, FileTextIcon, LogoutIcon, SunIcon, MoonIcon } from './Icons'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const { unit, toggleUnit } = useGlucoseUnit()
+  const [isDark, setIsDark] = React.useState(false)
   const pathname = usePathname()
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('sweety_theme')
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+        setIsDark(true)
+        document.documentElement.setAttribute('data-theme', 'dark')
+      }
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    const nextDark = !isDark
+    setIsDark(nextDark)
+    if (typeof window !== 'undefined') {
+      if (nextDark) {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        localStorage.setItem('sweety_theme', 'dark')
+      } else {
+        document.documentElement.removeAttribute('data-theme')
+        localStorage.setItem('sweety_theme', 'light')
+      }
+    }
+  }
 
   if (!user && (pathname === '/login' || pathname === '/register')) {
     return null
@@ -55,6 +81,27 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-user">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+          aria-label={`Toggle dark mode, currently ${isDark ? 'dark' : 'light'}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            border: '1px solid #cbd5e1',
+            background: '#f8fafc',
+            color: '#475569',
+            cursor: 'pointer',
+          }}
+        >
+          {isDark ? <SunIcon size={15} /> : <MoonIcon size={15} />}
+        </button>
+
         <button
           type="button"
           onClick={toggleUnit}

@@ -44,6 +44,17 @@ export const SLOTS_ORDER = [
   'after_dinner',
 ]
 
+/**
+ * Automatically determines default metabolic slot based on current time of day
+ */
+export function getDefaultSlotForCurrentTime() {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 10) return 'morning_fasting'
+  if (hour >= 10 && hour < 14) return 'after_breakfast'
+  if (hour >= 14 && hour < 19) return 'after_lunch'
+  return 'after_dinner'
+}
+
 export function getGlucoseStatus(value, slot = 'morning_fasting') {
   const val = Number(value)
   if (isNaN(val) || val <= 0) {

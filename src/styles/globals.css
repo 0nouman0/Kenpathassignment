@@ -166,3 +166,49 @@ input, select, textarea {
   white-space: nowrap;
   border: 0;
 }
+
+/* ============================================================
+   DARK MODE OVERRIDES
+   ============================================================ */
+[data-theme="dark"] {
+  --slate-50:  #090d16;
+  --slate-100: #0f172a;
+  --slate-200: #1e293b;
+  --slate-300: #334155;
+  --slate-400: #64748b;
+  --slate-500: #94a3b8;
+  --slate-600: #cbd5e1;
+  --slate-700: #e2e8f0;
+  --slate-800: #f1f5f9;
+  --slate-900: #f8fafc;
+  --white:     #0f172a;
+
+  --primary-light:  #134e4a;
+  --primary-border: #0d9488;
+  --primary-text:   #99f6e4;
+
+  --status-low-bg:     #082f49;
+  --status-low-border: #0369a1;
+  --status-low-text:   #7dd3fc;
+
+  --status-target-bg:     #064e3b;
+  --status-target-border: #047857;
+  --status-target-text:   #6ee7b7;
+
+  --status-elevated-bg:     #451a03;
+  --status-elevated-border: #b45309;
+  --status-elevated-text:   #fde68a;
+
+  --status-high-bg:     #4c0519;
+  --status-high-border: #be123c;
+  --status-high-text:   #fecdd3;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
