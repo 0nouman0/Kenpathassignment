@@ -24,8 +24,9 @@ Built for the **Kenpath Junior Full Stack Developer** assignment using **Node.js
 - [Running Tests](#running-tests)
 - [API Reference](#api-reference)
 - [Project Architecture](#project-architecture)
-- [Design Decisions & Assumptions](#design-decisions--assumptions)
-- [Future Enhancements](#future-enhancements)
+- [Notes](#notes)
+  - [Assumptions](#assumptions)
+  - [What I'd Improve with More Time](#what-id-improve-with-more-time)
 
 ---
 
@@ -291,21 +292,26 @@ kenpathassignment/
 
 ---
 
-## Design Decisions & Assumptions
+## Notes
 
-1. **Timezone Awareness**: "Future" is determined relative to the user's registered timezone (captured via `Intl.DateTimeFormat().resolvedOptions().timeZone`), ensuring patients logging readings past midnight in their local time are not falsely rejected.
-2. **Date Storage as Canonical Strings**: Dates are maintained as strict `YYYY-MM-DD` strings from UI inputs to PostgreSQL `DATE` columns, preventing timezone shifting or off-by-one errors.
-3. **Cookie-Based JWT Storage**: Tokens are stored exclusively in `httpOnly` cookies rather than `localStorage` to safeguard against cross-site scripting (XSS) token theft.
-4. **Previous Month Semantics**: Relative to the selected anchor date, "Monthly" refers strictly to the complete preceding calendar month (e.g., Selecting `15 Oct 2026` generates the report for `1 Sep – 30 Sep 2026`).
-5. **ADA Clinical Thresholds**: Fasting targets are set to 70–130 mg/dl and post-meal targets are set to < 180 mg/dl in accordance with standard American Diabetes Association guidelines.
+### Assumptions
 
----
+- **Timezone Awareness**: "Future" is determined relative to the user's registered timezone (captured via `Intl.DateTimeFormat().resolvedOptions().timeZone` during sign-up), ensuring patients logging readings past midnight in their local time are not falsely rejected.
+- **Date Storage as Canonical Strings**: Dates are maintained as strict `YYYY-MM-DD` strings end-to-end from HTML inputs to PostgreSQL `DATE` columns, preventing timezone drift or off-by-one errors.
+- **Report Date Boundaries**:
+  - **Daily**: Covers exclusively the selected anchor date.
+  - **Month-to-date**: Covers the 1st of the month through the selected anchor date.
+  - **Monthly**: Covers the full previous calendar month relative to the selected anchor date (e.g., Selecting `15 Oct 2026` generates the report for `1 Sep – 30 Sep 2026`). Future report dates are allowed (returning 0 readings); only reading creation/edits cannot be dated in the future.
+- **Single Unit System**: Readings are recorded in `mg/dl` as whole numbers between 40 and 600 (without unit conversion toggles).
+- **Daily Ceiling vs. Slot Constraint**: With exactly 4 slots per day and 1 reading per slot, the 4th reading naturally fills the day. Both constraints are enforced in the schema (`UNIQUE (user_id, reading_date, time_slot)` and a max-4 check during inserts).
+- **Session Security**: Authentication tokens are stored exclusively in `httpOnly, SameSite=Lax` cookies rather than `localStorage` to safeguard against cross-site scripting (XSS) token exfiltration.
+- **Clinical Target Guidance**: The "In target / High / Low" status badges use standard American Diabetes Association (ADA) guidance (fasting 70–130 mg/dl, post-meal < 180 mg/dl) as visual aids for the patient.
 
-## Future Enhancements
+### What I'd Improve with More Time
 
-With additional development time, the following enhancements could be incorporated:
-- **Redis Caching Layer**: Cache generated monthly reports with invalidation triggered on reading mutations.
-- **Background Worker (BullMQ)**: Automated daily reminder emails dispatched at 8 PM to users with fewer than 4 recorded readings.
-- **Healthcare Provider / Doctor Role**: Role-based access control (RBAC) allowing physicians to monitor assigned patients' trajectory charts.
-- **CSV & PDF Export**: One-click clinical report export formatted for medical consults.
-- **End-to-End Test Suite**: Automated Playwright browser tests covering full CRUD user journeys.
+- **Redis Caching Layer**: Cache computed monthly and month-to-date report aggregates in Redis, invalidated automatically whenever a reading is created, updated, or deleted.
+- **Background Jobs with BullMQ**: Implement scheduled cron reminders (e.g. at 8:00 PM) notifying users who have logged fewer than 4 readings for the day.
+- **Healthcare Provider / Doctor Role**: Extend role-based access control (RBAC) allowing physicians to monitor assigned patients' daily reports and glycemic trajectory charts.
+- **End-to-End Test Suite**: Add automated Playwright or Cypress browser test suites verifying complete patient flows across login, form validation, error states, and report generation.
+- **Export & Print Formats**: Add clean PDF and CSV export utilities formatted specifically for physician consultations.
+- **Offline Sync & PWA Support**: Implement service worker caching and IndexedDB offline queueing to allow patients to record readings without an active internet connection.
