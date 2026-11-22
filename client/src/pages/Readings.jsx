@@ -21,7 +21,6 @@ export default function Readings() {
   const load = useCallback(async () => {
     try {
       const res = await api.listReadings({ page, limit: PAGE_SIZE, date })
-      // If the last row of the last page was just deleted, step back a page.
       if (res.data.length === 0 && page > 1) {
         setPage(page - 1)
         return
@@ -44,44 +43,46 @@ export default function Readings() {
     <>
       <div className="page-head">
         <div>
-          <p className="eyebrow">History</p>
-          <h1>Readings</h1>
+          <p className="eyebrow">Log History</p>
+          <h1>Readings Log</h1>
         </div>
         <button type="button" className="button" onClick={() => setForm({})}>
-          Add reading
+          + Add Reading
         </button>
       </div>
 
-      <div className="toolbar">
-        <div className="field field-inline">
-          <label htmlFor="filter-date">Show date</label>
-          <input
-            id="filter-date"
-            type="date"
-            value={date}
-            max={todayLocal()}
-            onChange={(e) => {
-              setDate(e.target.value)
-              setPage(1)
-            }}
-          />
+      <div className="toolbar-card">
+        <div className="toolbar-filters">
+          <div className="field field-inline">
+            <label htmlFor="filter-date">Filter by date</label>
+            <input
+              id="filter-date"
+              type="date"
+              value={date}
+              max={todayLocal()}
+              onChange={(e) => {
+                setDate(e.target.value)
+                setPage(1)
+              }}
+            />
+          </div>
+          {date && (
+            <button
+              type="button"
+              className="button button-quiet"
+              onClick={() => {
+                setDate('')
+                setPage(1)
+              }}
+            >
+              Clear filter
+            </button>
+          )}
         </div>
-        {date && (
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => {
-              setDate('')
-              setPage(1)
-            }}
-          >
-            Show all dates
-          </button>
-        )}
         {pagination && (
-          <p className="muted toolbar-count">
-            {pagination.total} {pagination.total === 1 ? 'reading' : 'readings'}
-          </p>
+          <div className="toolbar-badge">
+            <span>{pagination.total}</span> total {pagination.total === 1 ? 'reading' : 'readings'}
+          </div>
         )}
       </div>
 
@@ -94,13 +95,13 @@ export default function Readings() {
         </p>
       )}
 
-      {state === 'loading' && <p className="muted">Loading…</p>}
+      {state === 'loading' && <p className="muted boot">Loading logbook history…</p>}
 
       {state === 'ready' && rows.length === 0 && (
         <div className="empty">
-          <p>{date ? 'No readings on this date.' : 'No readings yet.'}</p>
-          <button type="button" className="link-button" onClick={() => setForm({})}>
-            Add the first one
+          <p>{date ? 'No readings recorded on this date.' : 'No readings recorded yet.'}</p>
+          <button type="button" className="button button-quiet" style={{ marginTop: '1rem' }} onClick={() => setForm({})}>
+            Add First Reading
           </button>
         </div>
       )}
@@ -111,11 +112,11 @@ export default function Readings() {
             <thead>
               <tr>
                 <th scope="col">Date</th>
-                <th scope="col">Time slot</th>
+                <th scope="col">Time Slot</th>
                 <th scope="col" className="num">
-                  mg/dl
+                  Value (mg/dl)
                 </th>
-                <th scope="col">Range</th>
+                <th scope="col">Clinical Range</th>
                 <th scope="col">
                   <span className="visually-hidden">Actions</span>
                 </th>
@@ -124,8 +125,10 @@ export default function Readings() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td>{formatDate(r.reading_date)}</td>
-                  <td>{slotLabel(r.time_slot)}</td>
+                  <td className="date-cell">{formatDate(r.reading_date)}</td>
+                  <td>
+                    <span className="slot-chip">{slotLabel(r.time_slot)}</span>
+                  </td>
                   <td className="num strong">{r.value_mgdl}</td>
                   <td>
                     <Status value={r.value_mgdl} slot={r.time_slot} />
@@ -155,10 +158,10 @@ export default function Readings() {
             disabled={page <= 1}
             onClick={() => setPage(page - 1)}
           >
-            Previous
+            &larr; Previous
           </button>
-          <span className="muted">
-            Page {pagination.page} of {pagination.totalPages}
+          <span className="pager-info">
+            Page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong>
           </span>
           <button
             type="button"
@@ -166,7 +169,7 @@ export default function Readings() {
             disabled={page >= pagination.totalPages}
             onClick={() => setPage(page + 1)}
           >
-            Next
+            Next &rarr;
           </button>
         </nav>
       )}

@@ -9,19 +9,23 @@ import TrendChart from '../components/TrendChart'
 function ReportSection({ title, note, report, children }) {
   const empty = report && report.stats.count === 0
   return (
-    <section className="report" aria-label={title}>
-      <header>
-        <h2>{title}</h2>
-        <p className="report-range">{report ? formatRange(report.range) : ' '}</p>
-        <p className="muted">{note}</p>
+    <section className="report-card" aria-label={title}>
+      <header className="report-card-head">
+        <div>
+          <span className="report-badge">{title}</span>
+          <p className="report-range">{report ? formatRange(report.range) : ' '}</p>
+        </div>
+        <p className="report-note">{note}</p>
       </header>
       {empty ? (
-        <p className="empty">No readings in this period.</p>
+        <div className="report-empty">
+          <p>No readings recorded in this time range.</p>
+        </div>
       ) : (
-        <>
+        <div className="report-card-body">
           <Stats stats={report?.stats} />
           {children}
-        </>
+        </div>
       )}
     </section>
   )
@@ -58,11 +62,11 @@ export default function Reports() {
     <>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Reports</p>
+          <p className="eyebrow">Clinical Analytics</p>
           <h1>{date ? formatLong(date) : 'Choose a date'}</h1>
         </div>
-        <div className="field field-inline">
-          <label htmlFor="report-date">Report date</label>
+        <div className="toolbar-date-select">
+          <label htmlFor="report-date">Anchor Date</label>
           <input
             id="report-date"
             type="date"
@@ -79,36 +83,45 @@ export default function Reports() {
         </p>
       )}
 
-      {state === 'loading' && !data && <p className="muted">Loading…</p>}
+      {state === 'loading' && !data && <p className="muted boot">Generating glycemic analytics…</p>}
 
       {data && (
         <div className={state === 'loading' ? 'is-stale' : undefined}>
           <div className="reports">
-            <ReportSection title="Daily" note="The selected date" report={data.daily}>
-              <ul className="day-list">
-                {data.daily.readings.map((r) => (
-                  <li key={r.id}>
-                    <span>{slotLabel(r.time_slot)}</span>
-                    <span className="day-list-value">{r.value_mgdl}</span>
-                    <Status value={r.value_mgdl} slot={r.time_slot} />
-                  </li>
-                ))}
-              </ul>
+            <ReportSection title="Daily Report" note="Selected calendar day" report={data.daily}>
+              <div className="day-breakdown">
+                <span className="day-breakdown-title">Day&rsquo;s Slot Readings</span>
+                <ul className="day-list">
+                  {data.daily.readings.map((r) => (
+                    <li key={r.id}>
+                      <span className="slot-chip">{slotLabel(r.time_slot)}</span>
+                      <span className="day-list-value">{r.value_mgdl} <span className="unit">mg/dl</span></span>
+                      <Status value={r.value_mgdl} slot={r.time_slot} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </ReportSection>
+
             <ReportSection
-              title="Month to date"
-              note="1st of the month to the selected date"
+              title="Month to Date"
+              note="1st of the month through anchor date"
               report={data.mtd}
             />
-            <ReportSection title="Previous month" note="The whole month before" report={data.monthly} />
+
+            <ReportSection
+              title="Previous Month"
+              note="Full previous calendar month"
+              report={data.monthly}
+            />
           </div>
 
           <section className="section" aria-labelledby="trend-title">
             <h2 id="trend-title" className="section-title">
-              This month, up to {formatDate(date)}
+              Monthly Trend Analysis (up to {formatDate(date)})
             </h2>
             {data.trend.length === 0 ? (
-              <p className="empty">No readings this month yet, so there is nothing to plot.</p>
+              <p className="empty">No readings this month yet to display trajectory.</p>
             ) : (
               <TrendChart readings={data.trend} />
             )}

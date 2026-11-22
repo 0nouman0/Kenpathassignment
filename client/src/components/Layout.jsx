@@ -5,14 +5,19 @@ import { ToastProvider } from './Toast'
 export function Wordmark() {
   return (
     <span className="wordmark">
-      <span className="wordmark-dot" aria-hidden="true" />
-      Sweety
+      <span className="wordmark-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+        </svg>
+      </span>
+      <span>Sweety</span>
     </span>
   )
 }
 
 export default function Layout() {
   const { user, logout } = useAuth()
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U'
 
   return (
     <ToastProvider>
@@ -27,10 +32,14 @@ export default function Layout() {
             </NavLink>
             <NavLink to="/readings">Readings</NavLink>
             <NavLink to="/reports">Reports</NavLink>
+            <NavLink to="/welcome" className="nav-secondary">About</NavLink>
           </nav>
           <div className="topbar-user">
-            <span className="topbar-name">{user.name}</span>
-            <button type="button" className="link-button" onClick={logout}>
+            <div className="user-avatar" title={user?.email || user?.name}>
+              {initial}
+            </div>
+            <span className="topbar-name">{user?.name}</span>
+            <button type="button" className="link-button logout-btn" onClick={logout}>
               Log out
             </button>
           </div>
@@ -40,8 +49,10 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="footer">
-        Target bands are general adult guidance (fasting 70–130, after meals under 180 mg/dl).
-        Sweety is a logbook, not medical advice.
+        <div className="footer-inner">
+          <span>Target ranges: Fasting 70–130 mg/dl &bull; Post-meal &lt; 180 mg/dl (ADA guidance).</span>
+          <span>Sweety is a clinical logbook, not diagnostic medical advice.</span>
+        </div>
       </footer>
     </ToastProvider>
   )
