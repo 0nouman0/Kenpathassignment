@@ -53,7 +53,7 @@ export function readingRoutes(pool) {
   router.get('/', async (req, res, next) => {
     try {
       const page = Math.max(1, parseInt(req.query.page, 10) || 1)
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20))
+      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 20))
 
       const where = ['user_id = $1']
       const params = [req.user.id]

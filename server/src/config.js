@@ -1,4 +1,10 @@
-import 'dotenv/config'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import dotenv from 'dotenv'
+
+// One .env file at the repository root is shared by the server and docker-compose.
+const here = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(here, '..', '..', '.env') })
 
 const isProduction = process.env.NODE_ENV === 'production'
 
