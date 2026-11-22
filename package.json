@@ -5,6 +5,7 @@
   "description": "Sweety: a blood glucose tracker (Express + PostgreSQL + React)",
   "scripts": {
     "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n \"server,client\" -c \"blue,cyan\" \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
     "db:init": "npm --prefix server run db:init",
@@ -12,5 +13,8 @@
     "build": "npm --prefix client run build",
     "start": "npm --prefix server start",
     "test": "npm --prefix server test && npm --prefix client test"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7"
   }
 }

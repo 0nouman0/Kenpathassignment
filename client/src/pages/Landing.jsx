@@ -1,22 +1,18 @@
 import { Link } from 'react-router-dom'
 import { Wordmark } from '../components/Layout'
 
-/* ------------------------------------------------------------------ */
-/* Sub-components                                                       */
-/* ------------------------------------------------------------------ */
-
 function LandingNav() {
   return (
-    <header className="topbar">
-      <div className="topbar-inner">
-        <span className="topbar-brand">
+    <header className="lp-nav">
+      <div className="lp-nav-inner">
+        <Link to="/" className="topbar-brand" aria-label="Sweety home">
           <Wordmark />
-        </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <Link to="/login" className="button button-quiet" style={{ textDecoration: 'none' }}>
+        </Link>
+        <div className="lp-nav-cta">
+          <Link to="/login" className="button button-quiet">
             Log in
           </Link>
-          <Link to="/register" className="button" style={{ textDecoration: 'none' }}>
+          <Link to="/register" className="button">
             Get started
           </Link>
         </div>
@@ -25,10 +21,12 @@ function LandingNav() {
   )
 }
 
-function FeatureCard({ label, body }) {
+function FeatureCard({ icon, label, title, body }) {
   return (
     <div className="lp-feature-card">
+      <div className="lp-feature-icon">{icon}</div>
       <p className="eyebrow">{label}</p>
+      <h3 className="lp-feature-title">{title}</h3>
       <p className="lp-feature-body">{body}</p>
     </div>
   )
@@ -46,139 +44,211 @@ function StepRow({ number, heading, body }) {
   )
 }
 
-/* ------------------------------------------------------------------ */
-/* Landing page                                                         */
-/* ------------------------------------------------------------------ */
-
 export default function Landing() {
   return (
     <>
       <LandingNav />
 
-      {/* ---- Hero ---- */}
+      {/* ---- Hero Section ---- */}
       <section className="lp-hero">
         <div className="lp-container">
-          <p className="eyebrow" style={{ marginBottom: '1rem' }}>Blood glucose tracker</p>
-          <h1 className="lp-hero-heading">
-            A quiet logbook for<br />every reading.
-          </h1>
-          <p className="lp-hero-sub">
-            Record up to four readings a day — fasting, after each meal — and get
-            instant daily and monthly summaries you can share with your doctor.
-          </p>
-          <div className="lp-hero-cta">
-            <Link to="/register" className="button lp-cta-primary" style={{ textDecoration: 'none' }}>
-              Create a free account
-            </Link>
-            <Link to="/login" className="button button-quiet" style={{ textDecoration: 'none' }}>
-              Log in
-            </Link>
-          </div>
+          <div className="lp-hero-content">
+            <div className="lp-hero-badge">
+              <span className="lp-hero-badge-dot" />
+              <span>Smart Clinical Glucose Tracking</span>
+            </div>
 
-          {/* Demo callout */}
-          <div className="lp-demo-note">
-            <p>
-              Want to explore first?{' '}
-              <Link to="/login">Log in with the demo account</Link>
-              {' '}— email{' '}
-              <code>demo@sweety.app</code>, password <code>Demo1234!</code>
+            <h1 className="lp-hero-heading">
+              A quiet, reliable companion for <mark>diabetes care</mark>.
+            </h1>
+
+            <p className="lp-hero-sub">
+              Log up to four structured daily blood glucose readings. Gain clear clinical insights,
+              review month-to-date trends, and share verified reports directly with your healthcare provider.
             </p>
-          </div>
-        </div>
 
-        {/* Decorative ruled lines */}
-        <div className="lp-ruled" aria-hidden="true">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <span key={i} className="lp-rule-line" />
-          ))}
+            <div className="lp-hero-cta">
+              <Link to="/register" className="button lp-btn-primary">
+                Create Free Account
+              </Link>
+              <Link to="/login" className="button button-quiet lp-btn-secondary">
+                Log In
+              </Link>
+            </div>
+
+            <div className="lp-demo-note">
+              <span>Ready to test?</span>
+              <span>
+                Use demo account: <code>demo@sweety.app</code> / <code>Demo1234!</code>
+              </span>
+            </div>
+
+            <div className="lp-stats-ribbon">
+              <div className="lp-stat-item">
+                <span className="lp-stat-num">4</span>
+                <span className="lp-stat-label">Metabolic Slots / Day</span>
+              </div>
+              <div className="lp-stat-item">
+                <span className="lp-stat-num">40–600</span>
+                <span className="lp-stat-label">Target mg/dl Range</span>
+              </div>
+              <div className="lp-stat-item">
+                <span className="lp-stat-num">100%</span>
+                <span className="lp-stat-label">Isolated Patient Data</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ---- Divider ---- */}
-      <div className="lp-divider" />
-
-      {/* ---- Features ---- */}
+      {/* ---- Features Grid ---- */}
       <section className="lp-section lp-container" aria-labelledby="features-heading">
-        <h2 id="features-heading" className="lp-section-heading">What it tracks</h2>
+        <p className="lp-section-eyebrow">Comprehensive Features</p>
+        <h2 id="features-heading" className="lp-section-heading">Designed for precision and clarity</h2>
+        <p className="lp-section-sub">
+          Every screen in Sweety is built to minimise cognitive load while giving you and your physician
+          actionable glycemic insights.
+        </p>
+
         <div className="lp-feature-grid">
           <FeatureCard
-            label="Four daily slots"
-            body="Morning (fasting), After breakfast, After lunch, After dinner — the four readings your care team actually wants to see."
+            icon={
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            }
+            label="Protocol"
+            title="Four Daily Reading Slots"
+            body="Morning fasting, after breakfast, after lunch, and after dinner — perfectly mapped to clinical diabetes monitoring routines."
           />
+
           <FeatureCard
-            label="Strict validation"
-            body="Only whole numbers from 40 to 600 mg/dl. One reading per slot per day. Future dates are blocked. The logbook stays clean."
+            icon={
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            }
+            label="Integrity"
+            title="Strict Data Validation"
+            body="Immediate enforcement prevents duplicates per slot, restricts values to 40–600 mg/dl, and eliminates accidental future entries."
           />
+
           <FeatureCard
-            label="Daily report"
-            body="See every reading for a chosen day alongside its high, low, and average at a glance."
+            icon={
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            }
+            label="Reporting"
+            title="Comprehensive Daily Summary"
+            body="View individual slot readings alongside highest, lowest, and average glucose levels for any chosen day."
           />
+
           <FeatureCard
-            label="Month-to-date"
-            body="From the 1st of the month through any anchor date — useful mid-month check-ins."
+            icon={
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                <polyline points="17 6 23 6 23 12" />
+              </svg>
+            }
+            label="Analytics"
+            title="Month-to-Date & Monthly"
+            body="Monitor rolling monthly progression up to any anchor date, or evaluate full prior calendar month reports with one click."
           />
+
           <FeatureCard
-            label="Monthly summary"
-            body="The full previous calendar month: high, low, average, and reading count."
+            icon={
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+            }
+            label="Visualisation"
+            title="ADA Target-Zone Charts"
+            body="Interactive Recharts trajectory displays day-to-day fluctuations with clearly shaded American Diabetes Association healthy thresholds."
           />
+
           <FeatureCard
-            label="Trend chart"
-            body="A line chart of your readings over the month with ADA target-zone bands drawn in."
+            icon={
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            }
+            label="Security"
+            title="Privacy First by Design"
+            body="Bcrypt password hashing and JWT authentication ensure complete tenant isolation. You and only you see your data."
           />
         </div>
       </section>
 
-      <div className="lp-divider" />
+      {/* ---- How It Works ---- */}
+      <section className="lp-alt-section" aria-labelledby="how-heading">
+        <div className="lp-container">
+          <p className="lp-section-eyebrow">Seamless Flow</p>
+          <h2 id="how-heading" className="lp-section-heading">How Sweety works in your daily life</h2>
+          <p className="lp-section-sub">
+            Built to be used in seconds so managing diabetes fits naturally into your routine.
+          </p>
 
-      {/* ---- How it works ---- */}
-      <section className="lp-section lp-container" aria-labelledby="how-heading">
-        <h2 id="how-heading" className="lp-section-heading">How it works</h2>
-        <div className="lp-steps">
-          <StepRow
-            number="01"
-            heading="Create your account"
-            body="Register with your name, email and a password. Your data is private — you only ever see your own readings."
-          />
-          <StepRow
-            number="02"
-            heading="Log each reading"
-            body="Pick the date and slot, type the value. Sweety validates it immediately and stores it against your account."
-          />
-          <StepRow
-            number="03"
-            heading="Review your reports"
-            body="Open the Reports page and select a date. Your daily, month-to-date and monthly summaries update instantly."
-          />
+          <div className="lp-steps">
+            <StepRow
+              number="01"
+              heading="Sign Up in Seconds"
+              body="Create your account with just your name, email, and password. No credit card, no complex onboarding."
+            />
+            <StepRow
+              number="02"
+              heading="Log Fasting & Meals"
+              body="Input your readings across the 4 standard slots. Instant feedback lets you know if a value is within target."
+            />
+            <StepRow
+              number="03"
+              heading="Review & Share Reports"
+              body="Inspect your daily and monthly analytics anytime to discuss informed changes with your physician."
+            />
+          </div>
         </div>
       </section>
 
-      <div className="lp-divider" />
-
-      {/* ---- CTA footer ---- */}
+      {/* ---- CTA Footer ---- */}
       <section className="lp-cta-section lp-container" aria-labelledby="cta-heading">
-        <h2 id="cta-heading" className="lp-cta-heading">Start logging today.</h2>
+        <h2 id="cta-heading" className="lp-cta-heading">Take control of your glucose logbook today.</h2>
         <p className="lp-cta-sub">
-          No subscription, no app to install. Open in any browser, on any device.
+          Clean, distraction-free logging accessible from your phone, tablet, or desktop.
         </p>
-        <div className="lp-hero-cta">
-          <Link to="/register" className="button lp-cta-primary" style={{ textDecoration: 'none' }}>
-            Get started
+        <div className="lp-cta-buttons">
+          <Link to="/register" className="button lp-btn-primary">
+            Get Started Now
           </Link>
-          <Link to="/login" className="button button-quiet" style={{ textDecoration: 'none' }}>
-            Log in
+          <Link to="/login" className="button button-quiet lp-btn-secondary">
+            Sign In with Demo
           </Link>
         </div>
       </section>
 
-      {/* ---- Page footer ---- */}
-      <footer className="footer lp-container" style={{ maxWidth: 'var(--page-width)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+      {/* ---- Footer ---- */}
+      <footer className="lp-footer">
+        <div className="lp-footer-inner">
           <span>
-            <Wordmark /> &mdash; blood glucose logbook
+            <Wordmark /> &mdash; Blood Glucose Tracker
           </span>
           <span>
-            Target bands are general adult guidance (fasting 70–130, after meals under 180 mg/dl).
-            Sweety is a logbook, not medical advice.
+            Target bands reflect general adult guidelines (fasting 70–130, post-meal &lt; 180 mg/dl).
+            Sweety is a personal tracker, not medical diagnosis.
           </span>
         </div>
       </footer>
