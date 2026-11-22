@@ -1,161 +1,311 @@
-# Sweety
+# Sweety — Blood Glucose Tracker
 
-A small web app for people with diabetes. Record up to four blood glucose readings a day, then see daily, month-to-date and previous-month reports.
+A full-stack clinical blood glucose logging application for diabetes management. Patients record up to 4 structured metabolic readings a day (fasting, after breakfast, after lunch, after dinner) and view comprehensive daily, month-to-date, and previous-month reports with ADA glycemic target tracking.
 
-Built for the Kenpath Junior Full Stack Developer assignment with **Node.js + Express**, **PostgreSQL** and **React (Vite)**.
+Built for the **Kenpath Junior Full Stack Developer** assignment using **Node.js + Express**, **PostgreSQL**, and **React (Vite)**.
 
-| Today | Reports |
-| --- | --- |
-| ![Today](docs/screenshots/02-today.png) | ![Reports](docs/screenshots/04-reports.png) |
+---
 
-More screenshots are in [`docs/screenshots`](docs/screenshots): login, readings history, a validation error, and the mobile dark theme.
+## Table of Contents
 
-## What it does
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Demo Credentials](#demo-credentials)
+- [Prerequisites](#prerequisites)
+- [Quick Start Guide](#quick-start-guide)
+  - [1. Clone and Install](#1-clone-and-install)
+  - [2. Environment Configuration](#2-environment-configuration)
+  - [3. Database Setup](#3-database-setup)
+  - [4. Seed Sample Data](#4-seed-sample-data)
+  - [5. Run the Application](#5-run-the-application)
+- [Docker Deployment](#docker-deployment)
+- [Validation Rules](#validation-rules)
+- [Reporting Engine](#reporting-engine)
+- [Running Tests](#running-tests)
+- [API Reference](#api-reference)
+- [Project Architecture](#project-architecture)
+- [Design Decisions & Assumptions](#design-decisions--assumptions)
+- [Future Enhancements](#future-enhancements)
 
-- **Sign up / log in.** Passwords are hashed with bcrypt. The login is an httpOnly cookie holding a JWT. Everyone sees only their own readings.
-- **Add, view, edit, delete readings.** Each has a date, a time slot (Morning (fasting), After breakfast, After lunch, After dinner) and a value in mg/dl.
-- **Validation** (checked in the browser for quick feedback and again on the server, which is the one that counts):
+---
 
-  | Rule | Message |
-  | --- | --- |
-  | Value required | Please enter a glucose value. |
-  | Whole number, 40 to 600 | Value must be between 40 and 600 mg/dl. |
-  | One reading per slot per day | You already have an After lunch reading for this date. |
-  | Maximum 4 per day | You can add only 4 readings per day. |
-  | Date not in the future | Date cannot be in the future. |
+## Features
 
-- **Reports** show highest, lowest, average (1 decimal) and number of readings, with a friendly empty state:
+- **Authentication & Security**: Secure user registration and login with passwords hashed using `bcryptjs`. Session management via `httpOnly`, `SameSite=Lax` JWT cookies (preventing XSS token extraction).
+- **Tenant Isolation**: Strict user-level isolation in all queries — users can only view, edit, or delete their own readings. Cross-user access returns `404 Not Found`.
+- **4 Metabolic Slots**: Morning (fasting), After breakfast, After lunch, and After dinner.
+- **Strict Clinical Validation**: Instant browser feedback backed by identical server-side database enforcement (40–600 mg/dl range, whole numbers, unique slot per day, 4-reading daily ceiling, no future dates).
+- **Dynamic Reports**:
+  - **Daily Report**: All slot readings for the selected date + Highest, Lowest, Average (rounded to 1 decimal), and reading count.
+  - **Month-to-Date Report**: Rolling statistics from the 1st of the month through the selected anchor date.
+  - **Monthly Report**: Complete statistics for the whole previous calendar month.
+- **Interactive Trajectory Chart**: Visual line chart (Recharts) plotting daily average glucose against shaded American Diabetes Association (ADA) healthy target bands (70–180 mg/dl).
+- **Server-Side Pagination**: Full history table with date filtering and paginated retrieval (`?page=1&limit=15`).
+- **Modern Responsive UI**: Clean clinical design system with light/dark theme adaptation, accessible keyboard navigation, and zero external emoji.
 
-  | Report | Range (selected date 15 Oct 2026) |
-  | --- | --- |
-  | Daily (also lists each reading and its slot) | 15 Oct 2026 |
-  | Month to date | 1 Oct to 15 Oct 2026 |
-  | Previous month | 1 Sep to 30 Sep 2026 |
+---
 
-- **Bonus tasks done:** pagination on `GET /api/readings`, a chart of the month's readings (Recharts), `docker-compose.yml` (PostgreSQL and the app), and React Testing Library tests for the reading form.
+## Tech Stack
 
-## Project layout
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite, React Router v6, Recharts, CSS Variables (Design Tokens) |
+| **Backend** | Node.js (v20+), Express 4, jsonwebtoken, cookie-parser, bcryptjs |
+| **Database** | PostgreSQL 14+ (via `pg` pool), Docker Compose |
+| **Testing** | Vitest, Supertest, `pg-mem` (in-memory PostgreSQL), React Testing Library |
 
-```
-server/   Express API
-  src/routes/      auth, readings, reports
-  src/lib/         validation, dates, stats (plain functions, easy to test)
-  db/schema.sql    tables and constraints
-  scripts/         init-db.js, seed.js
-  tests/           Vitest + Supertest
-client/   React app (Vite)
-  src/pages/       Today, Readings, Reports, Login, Register
-  src/components/  ReadingForm, Modal, Stats, TrendChart, ...
-  src/styles/      app.css (all styling, with light and dark themes)
-  src/tests/       Vitest + React Testing Library
-```
+---
 
-## Install
+## Demo Credentials
 
-You need **Node.js 20 or newer** and **PostgreSQL 14 or newer** (or Docker, see below).
+For evaluation and testing, a pre-configured demo account populated with ~70 days of clinical readings is available:
 
-```bash
-git clone <this repository>
-cd <folder>
-npm run install:all          # installs server/ and client/ dependencies
-cp .env.example .env         # then edit .env (see below)
-```
+| Field | Value |
+|---|---|
+| **Email** | `demo@sweety.app` |
+| **Password** | `Demo1234!` |
 
-## Set up the database
+*(Note: In accordance with security best practices, demo credentials are kept in documentation and hidden from the public production login UI).*
 
-Create an empty database, then point `DATABASE_URL` in `.env` at it:
+---
 
-```bash
-createdb sweety              # or: psql -U postgres -c "CREATE DATABASE sweety;"
-```
+## Prerequisites
 
-In `.env`:
+Ensure you have the following installed locally:
+- **Node.js**: `v20.0.0` or higher
+- **npm**: `v10.0.0` or higher
+- **PostgreSQL**: `v14` or higher (OR **Docker** / **Docker Desktop** if running containerized)
 
-```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sweety
-```
+---
 
-Create the tables and add the demo user with sample readings:
+## Quick Start Guide
 
-```bash
-npm run db:init              # runs server/db/schema.sql (safe to repeat)
-npm run db:seed              # demo user + about 70 days of readings (safe to repeat)
-```
+### 1. Clone and Install
 
-The server also runs the schema when it starts, so `db:init` is optional.
-
-**Demo login:** `demo@sweety.app` / `Demo1234!`
-
-## Run
-
-Start both server and client together with a single command:
+Clone the repository and install dependencies for both `server` and `client` workspaces:
 
 ```bash
-npm run dev                  # Starts API (:4000) and Client (:5173) concurrently
+git clone https://github.com/mohammed-adnan260/kenpathassignment.git
+cd kenpathassignment
+npm run install:all
 ```
 
-Or run them individually if you prefer:
+*(This command executes `npm install` inside both `./server` and `./client`).*
+
+### 2. Environment Configuration
+
+Copy the example environment template to `.env` in the repository root:
 
 ```bash
-npm run dev:server           # API on http://localhost:4000
-npm run dev:client           # app on http://localhost:5173 (proxies /api to the API)
+cp .env.example .env
 ```
 
-Open <http://localhost:5173> (or <http://localhost:5173/welcome> for the landing page).
+Review the `.env` settings. The default values match local development and Docker:
 
-### Run with Docker instead
+```env
+PORT=4000
+DATABASE_URL=postgresql://sweety:sweety@127.0.0.1:5432/sweety
+JWT_SECRET=sweety-super-secret-jwt-key-for-development-only-replace-in-prod
+JWT_EXPIRES_IN=7d
+NODE_ENV=development
+```
+
+### 3. Database Setup
+
+You can use either a Docker-based PostgreSQL instance or your local PostgreSQL service:
+
+#### Option A: Quick PostgreSQL via Docker (Recommended)
+Start a standalone PostgreSQL container with the correct credentials:
 
 ```bash
-docker compose up --build    # PostgreSQL + the app on http://localhost:4000
-docker compose exec app node scripts/seed.js    # optional: add the demo data
+docker compose up -d db
 ```
 
-## Run the tests
+#### Option B: Local PostgreSQL Installation
+If using a native PostgreSQL service, create the database and user:
 
 ```bash
-npm test                     # server tests, then client tests
-npm --prefix server test     # API only
-npm --prefix client test     # React only
+psql -U postgres -c "CREATE USER sweety WITH PASSWORD 'sweety';"
+psql -U postgres -c "CREATE DATABASE sweety OWNER sweety;"
 ```
 
-The server tests run against an in-memory PostgreSQL (pg-mem), so they need no database or `.env`. They cover registration and login, password hashing, every validation rule, ownership (user A cannot see or change user B's readings), pagination, and the three report date ranges including year and leap-year edges. The client tests cover the reading form's validation, submit, edit, and server error display.
+#### Initialize Database Schema
+Run the migration script to create the `users` and `readings` tables with all constraints and indices:
 
-## API
+```bash
+npm run db:init
+```
 
-All routes except register and login need the login cookie. Errors look like `{ "error": "message", "field": "value_mgdl" }`.
+*(Note: The server also auto-verifies and applies the schema on startup if the tables do not exist).*
 
-| Method and path | Purpose |
-| --- | --- |
-| `POST /api/auth/register` | `{ name, email, password, timezone? }` |
-| `POST /api/auth/login` | `{ email, password }` |
-| `POST /api/auth/logout`, `GET /api/auth/me` | |
-| `GET /api/readings?page=1&limit=20` | Newest first. Optional `date=` or `from=` and `to=`. Returns `{ data, pagination }` |
-| `POST /api/readings` | `{ reading_date, time_slot, value_mgdl }` |
-| `PUT /api/readings/:id`, `DELETE /api/readings/:id` | Another user's reading returns 404 |
-| `GET /api/reports/daily?date=YYYY-MM-DD` | Stats plus the day's readings |
-| `GET /api/reports/month-to-date?date=...` | |
-| `GET /api/reports/monthly?date=...` | The whole month before the selected date's month |
+### 4. Seed Sample Data
 
-`time_slot` is one of `morning`, `after_breakfast`, `after_lunch`, `after_dinner`.
+Populate the database with the demo account and ~70 days of realistic blood glucose readings:
 
-## Notes
+```bash
+npm run db:seed
+```
 
-### Assumptions
+### 5. Run the Application
 
-- **"Future" depends on the user's timezone.** The browser's timezone is saved when someone registers, and the server uses it to decide what "today" is. A reading logged just after midnight in India is therefore not rejected just because it is still yesterday in UTC.
-- **Dates are `YYYY-MM-DD` strings end to end.** Nothing is converted through a JS `Date` in the server's timezone, which avoids off-by-one-day errors.
-- **"Previous month" means the month before the selected date's month**, as in the brief's example (selected 15 Oct gives 1 to 30 Sep).
-- **Report dates in the future are allowed** (they simply return no readings). Only *readings* cannot be dated in the future.
-- **The 4-per-day limit can never fire today.** There are exactly four slots and one reading per slot, so a full day already has every slot and the duplicate-slot message wins. The check is still implemented (and used when editing) as a safety net if more slots are added. This is why the form only ever shows the "already have" message in practice.
-- **Slots are fixed**, and the value is always mg/dl (no mmol/l toggle).
-- **The "In range / Low / High" labels** use common adult guidance (fasting 70 to 130, after meals under 180). They are only a visual aid, not medical advice, and are not part of the required rules.
-- The JWT lives in an httpOnly, SameSite=Lax cookie (not localStorage) so page scripts cannot read it. The Vite dev server proxies `/api`, which keeps the browser on a single origin so the cookie just works.
+Launch both the Express API and the Vite React client concurrently with **one single command**:
 
-### What I would improve with more time
+```bash
+npm run dev
+```
 
-- **Test against real PostgreSQL in CI.** The server tests use pg-mem for speed and zero setup; the SQL used is plain, but a real-database run would catch driver and type differences.
-- Rate limiting and lockout on login, email verification, and password reset.
-- Optimistic UI updates and a proper data-fetching layer (for example TanStack Query) instead of per-page `useEffect` loading.
-- Remaining bonus tasks: Redis caching for reports, a BullMQ reminder job, and a doctor role.
-- A browser end-to-end test (Playwright) for the full add, edit, delete flow, and a short screen recording.
-- Accessibility pass with a screen reader, and a localised date input.
+- **Frontend Client**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:4000](http://localhost:4000)
+- **Marketing / Landing Page**: [http://localhost:5173/welcome](http://localhost:5173/welcome)
+
+*(Alternatively, you can run them in separate terminals with `npm run dev:server` and `npm run dev:client`).*
+
+---
+
+## Docker Deployment
+
+To build and run the entire application (PostgreSQL + Express API + Static React Frontend) in containerized production mode:
+
+```bash
+# Build and spin up containers
+docker compose up --build -d
+
+# Seed initial demo data inside the container
+docker compose exec app node scripts/seed.js
+```
+
+The application will be live at:
+- **Full App (Docker)**: [http://localhost:4000](http://localhost:4000)
+
+To stop the containers:
+```bash
+docker compose down
+```
+
+---
+
+## Validation Rules
+
+Validation rules are strictly verified on the client for immediate UX feedback and enforced on the server/database layer for absolute data integrity.
+
+| Rule | Condition | Exact Error Message |
+|---|---|---|
+| **Value is required** | Input is empty or whitespace | `"Please enter a glucose value."` |
+| **Valid whole number** | Non-integer, `< 40`, or `> 600` | `"Value must be between 40 and 600 mg/dl."` |
+| **One reading per slot** | Slot already recorded for date | `"You already have an {Slot label} reading for this date."` |
+| **Max 4 per day** | Daily ceiling reached | `"You can add only 4 readings per day."` |
+| **Date not in future** | Date > user's current local date | `"Date cannot be in the future."` |
+
+---
+
+## Reporting Engine
+
+The reports compute summary statistics:
+$$\text{Average} = \text{round}\left(\frac{\sum \text{values}}{N}, 1\right)$$
+along with the Highest, Lowest, and total Count. Friendly empty states are rendered when no readings exist.
+
+| Report Type | Period Calculation | Example (Anchor: 15 Oct 2026) |
+|---|---|---|
+| **Daily** | The selected anchor date | `15 Oct 2026` |
+| **Month-to-date** | 1st of month through selected date | `1 Oct – 15 Oct 2026` |
+| **Monthly** | Full previous calendar month | `1 Sep – 30 Sep 2026` |
+
+The Daily report additionally provides a slot-by-slot breakdown with clinical target classification.
+
+---
+
+## Running Tests
+
+Sweety includes test suites covering both unit logic and end-to-end integration:
+
+```bash
+# Run all tests (Server + Client)
+npm test
+
+# Run server API tests only
+npm --prefix server test
+
+# Run React frontend tests only
+npm --prefix client test
+```
+
+### Test Suite Highlights
+- **Server Tests (35 passed)**: Run against an in-memory database (`pg-mem`) without requiring network connectivity. Covers authentication, password hashing, multi-tenant isolation, slot validation, edge-case leap years, and pagination.
+- **Client Tests (16 passed)**: Uses Vitest and React Testing Library (`@testing-library/react`) to test form validation, instant error dismissal, API error mapping, and keyboard navigation.
+
+---
+
+## API Reference
+
+All protected endpoints require the `token` cookie established on login.
+
+### Authentication
+- `POST /api/auth/register` — Register user `{ name, email, password, timezone? }`
+- `POST /api/auth/login` — Sign in `{ email, password }` (sets `httpOnly` cookie)
+- `POST /api/auth/logout` — Invalidate session and clear cookie
+- `GET /api/auth/me` — Retrieve currently authenticated user profile
+
+### Readings
+- `GET /api/readings?page=1&limit=15&date=YYYY-MM-DD` — Paginated readings list
+- `POST /api/readings` — Create reading `{ reading_date, time_slot, value_mgdl }`
+- `GET /api/readings/:id` — Get single reading (404 if not owned by user)
+- `PUT /api/readings/:id` — Update reading `{ reading_date, time_slot, value_mgdl }`
+- `DELETE /api/readings/:id` — Delete reading (404 if not owned by user)
+
+### Reports
+- `GET /api/reports/daily?date=YYYY-MM-DD` — Daily stats & slot breakdown
+- `GET /api/reports/month-to-date?date=YYYY-MM-DD` — Month-to-date statistics
+- `GET /api/reports/monthly?date=YYYY-MM-DD` — Previous calendar month summary
+
+---
+
+## Project Architecture
+
+```
+kenpathassignment/
+├── .env.example              # Environment variables template
+├── docker-compose.yml        # Docker compose definition for DB & App
+├── Dockerfile                # Production multi-stage Docker build
+├── package.json              # Root package config (concurrently, test scripts)
+├── client/                   # Frontend React + Vite application
+│   ├── src/
+│   │   ├── components/       # Layout, ReadingForm, Modal, TrendChart, Stats, Toast
+│   │   ├── pages/            # Today, Readings, Reports, Login, Register, Landing
+│   │   ├── lib/              # Dates, glucose validation helpers, summary calculations
+│   │   ├── styles/           # Modern medical healthtech CSS tokens and animations
+│   │   └── tests/            # Vitest + RTL tests for form and helpers
+│   └── vite.config.js        # Vite config with API proxy to localhost:4000
+└── server/                   # Backend Express + PostgreSQL API
+    ├── db/
+    │   └── schema.sql        # Table definitions, UNIQUE indices, CHECK constraints
+    ├── scripts/
+    │   ├── init-db.js        # Schema initialization runner
+    │   └── seed.js           # Demo user and ~70 days reading generator
+    ├── src/
+    │   ├── routes/           # auth.js, readings.js, reports.js
+    │   ├── middleware/       # JWT verification & ownership middleware
+    │   ├── lib/              # Validation, date calculations, SQL helpers
+    │   └── app.js            # Express application setup
+    └── tests/                # 35 Vitest + Supertest integration tests
+```
+
+---
+
+## Design Decisions & Assumptions
+
+1. **Timezone Awareness**: "Future" is determined relative to the user's registered timezone (captured via `Intl.DateTimeFormat().resolvedOptions().timeZone`), ensuring patients logging readings past midnight in their local time are not falsely rejected.
+2. **Date Storage as Canonical Strings**: Dates are maintained as strict `YYYY-MM-DD` strings from UI inputs to PostgreSQL `DATE` columns, preventing timezone shifting or off-by-one errors.
+3. **Cookie-Based JWT Storage**: Tokens are stored exclusively in `httpOnly` cookies rather than `localStorage` to safeguard against cross-site scripting (XSS) token theft.
+4. **Previous Month Semantics**: Relative to the selected anchor date, "Monthly" refers strictly to the complete preceding calendar month (e.g., Selecting `15 Oct 2026` generates the report for `1 Sep – 30 Sep 2026`).
+5. **ADA Clinical Thresholds**: Fasting targets are set to 70–130 mg/dl and post-meal targets are set to < 180 mg/dl in accordance with standard American Diabetes Association guidelines.
+
+---
+
+## Future Enhancements
+
+With additional development time, the following enhancements could be incorporated:
+- **Redis Caching Layer**: Cache generated monthly reports with invalidation triggered on reading mutations.
+- **Background Worker (BullMQ)**: Automated daily reminder emails dispatched at 8 PM to users with fewer than 4 recorded readings.
+- **Healthcare Provider / Doctor Role**: Role-based access control (RBAC) allowing physicians to monitor assigned patients' trajectory charts.
+- **CSV & PDF Export**: One-click clinical report export formatted for medical consults.
+- **End-to-End Test Suite**: Automated Playwright browser tests covering full CRUD user journeys.

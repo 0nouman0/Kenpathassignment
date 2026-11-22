@@ -10,12 +10,6 @@ export default function Login() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  function fillDemo() {
-    setEmail('demo@sweety.app')
-    setPassword('Demo1234!')
-    setError('')
-  }
-
   async function handleSubmit(e) {
     e.preventDefault()
     if (!email.trim() || !password) {
@@ -110,16 +104,6 @@ export default function Login() {
           <p className="muted auth-switch">
             Don&rsquo;t have an account? <Link to="/register">Create one</Link>
           </p>
-
-          <div className="auth-demo">
-            <div className="demo-header">
-              <span>Demo Credentials</span>
-              <button type="button" className="demo-fill-btn" onClick={fillDemo}>
-                Auto-fill
-              </button>
-            </div>
-            <code>demo@sweety.app</code> &bull; <code>Demo1234!</code>
-          </div>
         </form>
       </div>
     </main>

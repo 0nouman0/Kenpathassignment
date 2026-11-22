@@ -76,13 +76,6 @@ export default function Landing() {
               </Link>
             </div>
 
-            <div className="lp-demo-note">
-              <span>Ready to test?</span>
-              <span>
-                Use demo account: <code>demo@sweety.app</code> / <code>Demo1234!</code>
-              </span>
-            </div>
-
             <div className="lp-stats-ribbon">
               <div className="lp-stat-item">
                 <span className="lp-stat-num">4</span>
@@ -235,7 +228,7 @@ export default function Landing() {
             Get Started Now
           </Link>
           <Link to="/login" className="button button-quiet lp-btn-secondary">
-            Sign In with Demo
+            Sign In
           </Link>
         </div>
       </section>
