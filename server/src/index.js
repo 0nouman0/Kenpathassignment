@@ -7,7 +7,8 @@ const pool = createPool()
 try {
   await initSchema(pool)
 } catch (err) {
-  console.error(`Could not connect to PostgreSQL.\n${err.message}`)
+  const reason = err.message || err.errors?.[0]?.message || err.code || 'unknown error'
+  console.error(`Could not connect to PostgreSQL: ${reason}`)
   console.error('Check DATABASE_URL in your .env file and that PostgreSQL is running.')
   process.exit(1)
 }
