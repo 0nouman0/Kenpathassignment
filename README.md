@@ -88,14 +88,20 @@ The server also runs the schema when it starts, so `db:init` is optional.
 
 ## Run
 
-Use two terminals:
+Start both server and client together with a single command:
+
+```bash
+npm run dev                  # Starts API (:4000) and Client (:5173) concurrently
+```
+
+Or run them individually if you prefer:
 
 ```bash
 npm run dev:server           # API on http://localhost:4000
 npm run dev:client           # app on http://localhost:5173 (proxies /api to the API)
 ```
 
-Open <http://localhost:5173>.
+Open <http://localhost:5173> (or <http://localhost:5173/welcome> for the landing page).
 
 ### Run with Docker instead
 
