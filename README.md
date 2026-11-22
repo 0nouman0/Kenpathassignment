@@ -6,8 +6,28 @@ Built for the **Kenpath Junior Full Stack Developer** assignment using **Node.js
 
 ---
 
+## Screenshots
+
+| Today's Logbook | Clinical Reports & ADA Chart |
+|:---:|:---:|
+| ![Today's Logbook](docs/screenshots/02-today.png) | ![Reports & Trend Chart](docs/screenshots/04-reports.png) |
+| *Structured daily logging across 4 metabolic slots* | *Daily, month-to-date, monthly summaries & Recharts trajectory* |
+
+| Readings History & Filters | Strict Validation Error Display |
+|:---:|:---:|
+| ![Readings History](docs/screenshots/03-readings.png) | ![Validation Error](docs/screenshots/05-validation-error.png) |
+| *Full paginated history with date filtering* | *Real-time inline feedback preventing invalid entries* |
+
+| Secure Sign In | Mobile View & Dark Theme |
+|:---:|:---:|
+| ![Sign In Screen](docs/screenshots/01-login.png) | ![Mobile Dark Mode](docs/screenshots/06-mobile-dark.png) |
+| *JWT httpOnly cookie authentication* | *Responsive layout with automatic dark mode adaptation* |
+
+---
+
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Demo Credentials](#demo-credentials)
