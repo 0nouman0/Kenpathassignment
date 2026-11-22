@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth'
 import Layout from './components/Layout'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Today from './pages/Today'
@@ -24,15 +25,22 @@ function GuestOnly() {
 export default function App() {
   return (
     <Routes>
+      {/* Public marketing landing page */}
+      <Route path="/welcome" element={<Landing />} />
+
+      {/* Auth pages — redirect already-logged-in users to the app */}
       <Route element={<GuestOnly />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Route>
+
+      {/* Protected app pages */}
       <Route element={<RequireAuth />}>
         <Route path="/" element={<Today />} />
         <Route path="/readings" element={<Readings />} />
         <Route path="/reports" element={<Reports />} />
       </Route>
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
